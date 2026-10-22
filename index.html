@@ -169,6 +169,15 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
 .ritem .rv{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 .ritem .rv input{flex:1;background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:7px 9px;font:600 14px var(--f-num);min-width:0;text-align:right}
 
+.cloud{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:10px 14px;font:600 13px var(--f-body);cursor:pointer}
+.cloud:hover{border-color:var(--accent-edge);color:var(--fg)}
+.cloud i{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.cloud.on{color:var(--fg)} .cloud.on i{background:var(--gain)}
+.cloud.err i{background:var(--loss)}
+.cloud[hidden]{display:none}
+.cl-b{display:grid;gap:12px}
+.cl-b p{margin:0;font-size:13px;color:var(--muted)}
+.cl-b b{color:var(--fg)}
 @media (max-width:980px){.two{grid-template-columns:1fr}}
 @media (max-width:760px){
   .cal{grid-template-columns:1fr}
@@ -196,6 +205,7 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
       <p>Ganhos, gastos e contas fixas do mês</p>
     </div>
     <div class="hdr-r">
+      <button type="button" class="cloud" id="b-cloud" hidden><i></i><span>Entrar com Google</span></button>
       <button type="button" class="btn pri" id="b-fixos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Calendário gastos fixos</button>
       <div class="monthnav">
         <button id="prev" aria-label="Mês anterior">‹</button>
@@ -243,7 +253,8 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
         <p class="note">Comece pelo quadro "Valor atual": digite quanto o studio tem em caixa hoje. O resto é calculado a partir dele.</p>
         <p class="note">Ganho e gasto aceitam somas: digite 150+80 e o dia guarda 230. Em branco ou 0 apaga.</p>
         <p class="note">As contas fixas se repetem todo mês no mesmo dia. Ao marcar "Pago", o valor sai do caixa. Não digite a conta fixa de novo no Gasto do dia, senão conta duas vezes.</p>
-        <p class="note">Os dados ficam salvos neste navegador e neste aparelho. Baixe um backup de vez em quando para não perder nada e para levar para outro aparelho.</p>
+        <p class="note">Clique em "Entrar com Google" no topo para ter o mesmo histórico no celular e no computador. Sem entrar, os dados ficam salvos só neste navegador.</p>
+        <p class="note"> Baixe um backup de vez em quando para não perder nada e para levar para outro aparelho.</p>
       </div>
     </section>
   </div>
@@ -257,6 +268,13 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
       <div class="fcal" id="dfx-cal"></div>
       <div class="fed" id="dfx-ed"></div>
     </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-cloud" class="sm" aria-labelledby="dcl-t">
+  <div class="dlg">
+    <div class="dlg-h"><div><h3 id="dcl-t">Sincronização</h3><p>Celular e computador com o mesmo histórico</p></div><button type="button" class="dlg-x" data-close aria-label="Fechar">×</button></div>
+    <div class="dlg-b cl-b" id="dcl-b"></div>
   </div>
 </dialog>
 
@@ -423,7 +441,7 @@ function diasCom(R,f){let c=0;for(let d=1;d<=dim(R.y,R.m);d++){const e=st.d[key(
 
 // ---- salvar ----
 let tmr=null;
-function save(){try{localStorage.setItem(LS,JSON.stringify(st));setStatus("ok","Salvo neste navegador");}catch(e){setStatus("warn","Não foi possível salvar neste navegador");}}
+function save(){try{localStorage.setItem(LS,JSON.stringify(st));setStatus("ok",window.__nuvem?"Salvo na nuvem":"Salvo neste navegador");}catch(e){setStatus("warn","Não foi possível salvar neste navegador");}if(window.__nuvem)window.__nuvem.push(st);}
 function persist(ms){clearTimeout(tmr);tmr=setTimeout(save,ms||300);}
 function setStatus(c,t){const s=$("status");s.className="status "+c;s.lastChild.textContent=t;}
 function load(x){
@@ -544,11 +562,83 @@ $("b-imp").onchange=e=>{
   e.target.value="";
 };
 
+// ---- ponte com a sincronização (script abaixo) ----
+window.__app={LS,get:()=>st,setStatus,
+  apply(x){load(x);$("p-nome").value=st.nome;try{localStorage.setItem(LS,JSON.stringify(st));}catch(e){}render();if($("dlg-fixos").open)renderFixos();}};
+
 // ---- início ----
 try{load(JSON.parse(localStorage.getItem(LS)||"null"));}catch(e){}
 $("p-nome").value=st.nome;
 render();setStatus("ok","Salvo neste navegador");
 })();
+</script>
+
+<script type="module">
+// Sincronização pelo Firebase (login com Google). Sem configuração, a página funciona só neste navegador.
+const FIREBASE_CONFIG={apiKey:"AIzaSyC7J-DPwJxHqMlGccX0O_XRDfTDD9M2XI8",authDomain:"financas-lineti.firebaseapp.com",projectId:"financas-lineti",storageBucket:"financas-lineti.firebasestorage.app",messagingSenderId:"714622177070",appId:"1:714622177070:web:d6b5ec841504241632f4bf"};
+const APP="studio";
+const V="10.12.2", G=`https://www.gstatic.com/firebasejs/${V}/`;
+const A=window.__app, $=id=>document.getElementById(id);
+const btn=$("b-cloud"), dlg=$("dlg-cloud"), body=$("dcl-b");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+if(FIREBASE_CONFIG){
+  btn.hidden=false;
+  try{await start();}catch(e){console.error(e);ui(null,"Não consegui conectar à nuvem");}
+}
+async function start(){
+  const [{initializeApp},au,fs]=await Promise.all([import(G+"firebase-app.js"),import(G+"firebase-auth.js"),import(G+"firebase-firestore.js")]);
+  const app=initializeApp(FIREBASE_CONFIG), auth=au.getAuth(app);
+  let db;try{db=fs.initializeFirestore(app,{localCache:fs.persistentLocalCache()});}catch(e){db=fs.getFirestore(app);}
+  let user=null, ref=null, unsub=null, ready=false, last="";
+  const SYNC=A.LS+"-sync";
+  window.__nuvem=null;
+  // primeira vez neste aparelho: junta o que já estava aqui com o que está na nuvem
+  const merge=(a,b)=>({nome:b.nome||a.nome||"",d:{...a.d,...b.d},base:{...a.base,...b.base},pago:{...a.pago,...b.pago},ov:{...a.ov,...b.ov},
+    fixos:[...(b.fixos||[]),...(a.fixos||[]).filter(f=>!(b.fixos||[]).some(g=>g.id===f.id))]});
+  const empty=x=>!x||(!Object.keys(x.d||{}).length&&!(x.fixos||[]).length&&!Object.keys(x.base||{}).length);
+  const push=x=>{if(!ref||!ready)return;const s=JSON.stringify(x);if(s===last)return;last=s;
+    fs.setDoc(ref,{data:s,updated:fs.serverTimestamp()}).catch(e=>{console.error(e);ui(user,"Erro ao salvar na nuvem");});};
+  au.onAuthStateChanged(auth,async u=>{
+    if(unsub){unsub();unsub=null;}
+    user=u; ready=false; window.__nuvem=null;
+    if(!u){ui(null);A.setStatus("ok","Salvo neste navegador");return;}
+    ui(u,"Conectando…");
+    ref=fs.doc(db,"users",u.uid,"apps",APP);
+    const local=A.get();
+    const first=localStorage.getItem(SYNC)!==u.uid;
+    unsub=fs.onSnapshot(ref,snap=>{
+      if(snap.metadata.hasPendingWrites)return;
+      let cloud=null;try{cloud=snap.exists()?JSON.parse(snap.data().data):null;}catch(e){}
+      if(!ready){
+        ready=true;window.__nuvem={push};
+        let x=cloud;
+        if(first&&!empty(local))x=cloud?merge(local,cloud):local;
+        try{localStorage.setItem(SYNC,u.uid);}catch(e){}
+        if(x){last=JSON.stringify(cloud);A.apply(x);}
+        push(A.get());
+        ui(u);A.setStatus("ok","Salvo na nuvem");
+        return;
+      }
+      if(cloud&&snap.data().data!==JSON.stringify(A.get())){last=snap.data().data;A.apply(cloud);A.setStatus("ok","Atualizado de outro aparelho");}
+    },e=>{console.error(e);ui(u,"Sem permissão na nuvem. Confira as regras do Firestore.");});
+  });
+  btn.onclick=()=>{
+    if(user){dlg.showModal();return;}
+    const p=new au.GoogleAuthProvider();p.setCustomParameters({prompt:"select_account"});
+    au.signInWithPopup(auth,p).catch(e=>{
+      if(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment")return au.signInWithRedirect(auth,p);
+      if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){console.error(e);ui(null,e.code==="auth/unauthorized-domain"?"Domínio não autorizado no Firebase":"Não consegui entrar");}
+    });
+  };
+  au.getRedirectResult(auth).catch(()=>{});
+  body.addEventListener("click",e=>{if(e.target.id==="b-sair"){au.signOut(auth);dlg.close();}});
+}
+function ui(u,msg){
+  btn.classList.toggle("on",!!u&&!msg);btn.classList.toggle("err",!!msg&&msg!=="Conectando…");
+  btn.lastChild.textContent=u?(msg||"Sincronizado"):(msg||"Entrar com Google");
+  btn.title=u?u.email||"":"Entre para ver o mesmo histórico no celular e no computador";
+  body.innerHTML=u?`<p>Conectada como <b>${esc(u.email||"")}</b>.</p><p>Tudo o que você digitar aqui aparece nos outros aparelhos em que entrar com esta mesma conta Google.</p><button type="button" class="btn" id="b-sair">Sair desta conta</button><p>Ao sair, os dados continuam neste aparelho, mas param de sincronizar.</p>`:"";
+}
 </script>
 
 </body>
