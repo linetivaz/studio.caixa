@@ -1,0 +1,1582 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f6b5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Contas em dia">
+<title>Contas em dia</title>
+<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: cabeçalho com mês, faixa de resumo, contas do mês ao lado de entradas/saídas, dívidas e projeção embaixo */
+:root {
+  --bg: #f3f6f5; --surface: #ffffff; --surface-2: #e9efed; --line: #d5dfdb;
+  --fg: #14211e; --muted: #5b6d68; --accent: #0f6b5c; --accent-fg: #ffffff;
+  --studio: #0f6b5c; --mesa: #3d5fc4; --capital: #a8467a; --outros: #7d8a86;
+  --casa: #2f6fb3; --trabalho: #b8741a; --cartao: #7a4fb0;
+  --good: #1d7a45; --good-bg: #dff2e6; --warn: #9a5b00; --warn-bg: #fbecd2; --bad: #b3261e; --bad-bg: #fbe0dd;
+  --font-display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1514; --surface: #172120; --surface-2: #1f2b29; --line: #2c3a37;
+  --fg: #e4eeeb; --muted: #94a8a2; --accent: #4fc3a8; --accent-fg: #06201a;
+  --studio: #4fc3a8; --mesa: #8aa6f0; --capital: #e58bbb; --outros: #9aa8a4; --casa: #6ea8e8; --trabalho: #e2a54f; --cartao: #b08ae0;
+  --good: #6fd39a; --good-bg: #173426; --warn: #f0b85c; --warn-bg: #3a2c12; --bad: #ff8a80; --bad-bg: #3d1a18;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1514; --surface: #172120; --surface-2: #1f2b29; --line: #2c3a37;
+  --fg: #e4eeeb; --muted: #94a8a2; --accent: #4fc3a8; --accent-fg: #06201a;
+  --studio: #4fc3a8; --mesa: #8aa6f0; --capital: #e58bbb; --outros: #9aa8a4; --casa: #6ea8e8; --trabalho: #e2a54f; --cartao: #b08ae0;
+  --good: #6fd39a; --good-bg: #173426; --warn: #f0b85c; --warn-bg: #3a2c12; --bad: #ff8a80; --bad-bg: #3d1a18;
+  color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45 }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 22px }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em }
+h1 { font-size: 1.9rem } h2 { font-size: 1.25rem } h3 { font-size: 1rem }
+.num { font-variant-numeric: tabular-nums }
+.muted { color: var(--muted) }
+.label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600 }
+button, input, select { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+header.top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; justify-content: space-between }
+.monthnav { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px }
+.monthnav button { border: 0; background: transparent; width: 34px; height: 34px; border-radius: 999px; font-size: 1.1rem }
+.monthnav button:hover { background: var(--surface-2) }
+.monthnav .m { min-width: 150px; text-align: center; font-weight: 600 }
+.monthnav .today { width: auto; padding: 0 12px; font-size: .8rem; color: var(--accent); font-weight: 600 }
+
+.notice { background: var(--warn-bg); color: var(--warn); padding: 10px 14px; border-radius: var(--r); font-weight: 500 }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 4px; align-content: start }
+.tile .v { font-family: var(--font-display); font-size: 1.55rem; font-weight: 700 }
+.tile .s { font-size: .82rem; color: var(--muted) }
+.tile.hero { background: var(--accent); border-color: var(--accent); color: var(--accent-fg) }
+.tile.hero .label, .tile.hero .s { color: var(--accent-fg); opacity: .85 }
+.bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin-top: 6px }
+.bar > i { display: block; height: 100%; background: var(--good); border-radius: 99px }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 22px; align-items: start }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 14px; min-width: 0 }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap }
+
+.group { display: grid; gap: 2px }
+.group-head { display: flex; align-items: center; gap: 10px; padding: 8px 0 6px; border-bottom: 2px solid var(--gc) }
+.group-head .dot { width: 10px; height: 10px; border-radius: 3px; background: var(--gc) }
+.group-head h3 { flex: 1 }
+.group-head .tot { font-weight: 700 }
+.g-casa { --gc: var(--casa) } .g-trabalho { --gc: var(--trabalho) } .g-cartao { --gc: var(--cartao) }
+
+.row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 74px 112px 118px 30px; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line) }
+.row.paid .nome { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line) }
+.row .nome { font-weight: 500; overflow-wrap: anywhere }
+.row .sub { display: block; font-size: .76rem; color: var(--muted); font-weight: 400; text-decoration: none }
+.check { width: 22px; height: 22px; accent-color: var(--good) }
+.field { width: 100%; border: 1px solid transparent; background: var(--surface-2); border-radius: 7px; padding: 5px 7px; text-align: right; font-variant-numeric: tabular-nums }
+.field:hover { border-color: var(--line) }
+.field:focus { border-color: var(--accent); outline: none; background: var(--surface) }
+.dia { display: flex; align-items: center; gap: 4px; font-size: .8rem; color: var(--muted) }
+.dia .field { text-align: center; padding: 5px 2px }
+.pill { justify-self: start; font-size: .74rem; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--surface-2); color: var(--muted); white-space: nowrap }
+.pill.ok { background: var(--good-bg); color: var(--good) }
+.pill.late { background: var(--bad-bg); color: var(--bad) }
+.pill.soon { background: var(--warn-bg); color: var(--warn) }
+.icon { border: 0; background: transparent; color: var(--muted); width: 30px; height: 30px; border-radius: 7px; font-size: 1rem }
+.icon:hover { background: var(--surface-2); color: var(--fg) }
+.addbtn { justify-self: start; border: 1px dashed var(--line); background: transparent; border-radius: 7px; padding: 5px 10px; color: var(--muted); font-size: .85rem; margin-top: 6px }
+.addbtn:hover { color: var(--accent); border-color: var(--accent) }
+
+.editor { grid-column: 1 / -1; background: var(--surface-2); border-radius: 8px; padding: 12px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) }
+.editor label { display: grid; gap: 3px; font-size: .78rem; color: var(--muted) }
+.editor input, .editor select, .form input, .form select { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 7px 9px; width: 100%; min-width: 0 }
+.editor .actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 14px; font-weight: 600 }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
+.btn.danger { color: var(--bad); border-color: transparent; background: transparent }
+.btn.danger.armed { background: var(--bad); color: var(--surface) }
+
+.grand { display: flex; justify-content: space-between; align-items: baseline; padding-top: 6px; font-weight: 700; font-size: 1.05rem }
+
+.side { display: grid; gap: 22px; min-width: 0 }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 8px; padding: 3px }
+.seg button { border: 0; background: transparent; padding: 7px; border-radius: 6px; font-weight: 600; color: var(--muted) }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / .08) }
+.form { display: grid; gap: 8px; grid-template-columns: 1fr 1fr }
+.form .full { grid-column: 1 / -1 }
+.form label { display: grid; gap: 3px; font-size: .78rem; color: var(--muted) }
+.lanc { display: grid; gap: 0 }
+.lanc-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 30px; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line) }
+.lanc-row .d { font-size: .8rem; color: var(--muted) }
+.lanc-row .val.in { color: var(--good); font-weight: 600 } .lanc-row .val.out { color: var(--bad); font-weight: 600 }
+.lanc-row .c { display: block; font-size: .74rem; color: var(--muted) }
+.split { display: flex; gap: 16px; flex-wrap: wrap; font-size: .9rem }
+.renda-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 30px; gap: 8px; align-items: center }
+.renda-row input { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 8px; width: 100%; min-width: 0 }
+.renda-row input.num { text-align: right }
+.shares { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--surface-2) }
+.shares i { display: block; height: 100% }
+.fonte { display: grid; gap: 4px; border-top: 2px solid var(--fc); padding-top: 8px }
+.fonte-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.fonte-head h3 { font-size: .98rem }
+.fonte-head .t { font-weight: 700 }
+.fonte .lanc-row { grid-template-columns: 44px minmax(0, 1fr) auto 30px; padding: 5px 0 }
+.fonte-add { display: grid; grid-template-columns: minmax(0, 1fr) 100px auto; gap: 6px; margin-top: 4px }
+.fonte-add input { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 8px; width: 100%; min-width: 0 }
+.fonte-add input.num { text-align: right }
+.fonte-add .btn { padding: 6px 10px }
+.val.neg { color: var(--bad) }
+.ganhos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px 22px; align-items: start }
+.ganhos-grid > .empty { grid-column: 1 / -1 }
+.empty { color: var(--muted); font-size: .9rem; padding: 6px 0 }
+
+.debts { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px }
+.debt { border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 8px; background: var(--surface) }
+.debt .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
+.debt .top b { font-size: 1rem }
+.debt .end { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700 }
+.debt .bar > i { background: var(--gc) }
+.debt .ask { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: end }
+.debt .ask label { display: grid; gap: 3px; font-size: .74rem; color: var(--muted) }
+.debt .ask input { border: 1px solid var(--line); background: var(--surface-2); border-radius: 7px; padding: 6px 8px; width: 100%; min-width: 0 }
+.debt-summary { display: flex; gap: 28px; flex-wrap: wrap }
+.debt-summary > div { display: grid; gap: 2px }
+.debt-summary .v { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700 }
+
+.chart-wrap { overflow-x: auto }
+.chart { width: 100%; min-width: 560px; height: auto; display: block }
+.chart text { fill: var(--muted); font-family: var(--font-body); font-size: 11px }
+.chart .tv { fill: var(--fg); font-weight: 600 }
+.chart .grid { stroke: var(--line); stroke-width: 1 }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .82rem; color: var(--muted) }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--c); vertical-align: -1px }
+
+@media (max-width: 900px) {
+  .main { grid-template-columns: minmax(0, 1fr) }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+}
+@media (max-width: 560px) {
+  .row { grid-template-columns: 28px minmax(0, 1fr) 100px 30px; row-gap: 4px }
+  .row .dia { grid-column: 2; grid-row: 2 }
+  .row .pill { grid-column: 3; grid-row: 2; justify-self: end }
+  .row .valcell { grid-column: 3; grid-row: 1 }
+  .row .icon { grid-column: 4; grid-row: 1 }
+  .tile .v { font-size: 1.3rem }
+  h1 { font-size: 1.55rem }
+}
+@media (prefers-reduced-motion: no-preference) { .bar > i { transition: width .3s ease } }
+
+/* Abas Contas / Agendamentos */
+.tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; justify-self: start }
+.tabs button { border: 0; background: transparent; padding: 8px 18px; border-radius: 9px; font-weight: 600; color: var(--muted) }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-fg) }
+.tabs .count { display: inline-block; margin-left: 6px; font-size: .74rem; padding: 1px 7px; border-radius: 99px; background: var(--surface-2); color: var(--fg) }
+.tabs button[aria-selected="true"] .count { background: rgb(255 255 255 / .22); color: inherit }
+.tabs .count:empty { display: none }
+.view { display: grid; gap: 22px }
+.view[hidden] { display: none }
+
+/* Agenda */
+.ag-main { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 22px; align-items: start }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px }
+.cal .wd { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; text-align: center; padding-bottom: 4px }
+.cal .day { min-height: 92px; border: 1px solid var(--line); border-radius: 8px; padding: 5px; display: flex; flex-direction: column; gap: 3px; background: var(--surface); text-align: left; min-width: 0; color: var(--fg) }
+.cal .day:hover { border-color: var(--accent) }
+.cal .day.out { background: transparent; color: var(--muted); border-style: dashed }
+.cal .day.sel { border: 2px solid var(--accent); padding: 4px }
+.cal .day .n { font-size: .82rem; font-weight: 600 }
+.cal .day.today .n { background: var(--accent); color: var(--accent-fg); border-radius: 99px; width: 24px; height: 24px; display: grid; place-items: center }
+.chip { font-size: .72rem; line-height: 1.25; background: var(--good-bg); color: var(--fg); border-left: 3px solid var(--studio); border-radius: 4px; padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.chip.feito { opacity: .6 }
+.chip.more { background: transparent; border: 0; color: var(--muted); padding: 0 4px }
+.dots { display: none; gap: 3px; flex-wrap: wrap }
+.dots i { width: 7px; height: 7px; border-radius: 99px; background: var(--studio) }
+.ag-list { display: grid; gap: 10px }
+.ag-card { border: 1px solid var(--line); border-left: 4px solid var(--studio); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; background: var(--surface) }
+.ag-card.feito { border-left-color: var(--good); opacity: .85 }
+.ag-card .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.ag-card .hora { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem }
+.ag-card .nome { font-weight: 600 }
+.ag-card .det { font-size: .86rem; color: var(--muted); display: grid; gap: 2px; overflow-wrap: anywhere }
+.ag-card .det a { color: var(--accent); font-weight: 600; text-decoration: none }
+.ag-card .acts { display: flex; gap: 6px; flex-wrap: wrap }
+.ag-card .acts .btn, .ag-card .acts a.btn { padding: 5px 10px; font-size: .82rem; text-decoration: none; color: var(--fg) }
+.ag-card .acts .btn.primary { color: var(--accent-fg) }
+.ag-form { display: grid; gap: 8px; grid-template-columns: 1fr 1fr }
+.ag-form .full { grid-column: 1 / -1 }
+.ag-form label { display: grid; gap: 3px; font-size: .78rem; color: var(--muted) }
+.ag-form input, .ag-form textarea { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 7px 9px; width: 100%; min-width: 0; font: inherit; color: inherit }
+.ag-form textarea { resize: vertical; min-height: 54px }
+.ag-form input[type=date], .ag-form input[type=time] { -webkit-appearance: none; appearance: none; display: block; min-height: 38px; text-align: left }
+.ag-form .actions { grid-column: 1 / -1; display: flex; gap: 8px }
+.ag-form .actions .primary { flex: 1 }
+.prox { display: grid; gap: 0 }
+.prox-row { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); background: transparent; border-left: 0; border-right: 0; border-top: 0; text-align: left; color: var(--fg) }
+.prox-row:hover .nm { color: var(--accent) }
+.prox-row .dt { font-size: .8rem; color: var(--muted); line-height: 1.3 }
+.prox-row .nm { font-weight: 600 }
+.prox-row .nm small { display: block; font-weight: 400; color: var(--muted); font-size: .78rem }
+@media (max-width: 900px) { .ag-main { grid-template-columns: minmax(0, 1fr) } }
+@media (max-width: 560px) {
+  .cal .day { min-height: 54px }
+  .cal .day .chip { display: none }
+  .cal .day .dots { display: flex }
+  .tabs { justify-self: stretch; overflow-x: auto } .tabs button { flex: 1 0 auto; padding: 8px 12px; white-space: nowrap }
+}
+
+/* Aba Agendar: formulário sozinho, rápido de achar */
+.agendar { display: grid; gap: 22px; width: 100%; max-width: 560px }
+.novo-ag { justify-self: start; padding: 10px 18px }
+.tipo-pill { display: inline-block; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--muted); margin-left: 6px; vertical-align: 1px }
+.tipo-pill.retoque { background: var(--capital); color: var(--surface) }
+.chip.retoque { border-left-color: var(--capital); background: color-mix(in srgb, var(--capital) 22%, var(--surface)) }
+.prox-row.retoque .nm::before, .prox-row.nova .nm::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; background: var(--studio) }
+.prox-row.retoque .nm::before { background: var(--capital) }
+.dots i.retoque { background: var(--capital) }
+.ag-card.retoque { border-left-color: var(--capital) }
+#tabAgendar { color: var(--accent) }
+#tabAgendar[aria-selected="true"] { color: var(--accent-fg) }
+
+/* Gastos por categoria: barras horizontais, uma cor; contas fixas num tom mais apagado */
+.cat-bars { display: grid; gap: 8px }
+.cat-row { display: grid; grid-template-columns: minmax(110px, 190px) minmax(0, 1fr) auto; gap: 10px; align-items: center }
+.cat-nome { font-weight: 500; overflow-wrap: anywhere }
+.cat-track { height: 14px; display: block }
+.cat-track i { display: block; height: 100%; min-width: 2px; background: var(--trabalho); border-radius: 0 4px 4px 0 }
+.cat-track i.fixa { opacity: .5 }
+.cat-v { text-align: right; font-weight: 600; white-space: nowrap }
+.cat-v small { color: var(--muted); font-weight: 500; margin-left: 6px }
+@media (max-width: 560px) {
+  .cat-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 3px }
+  .cat-track { grid-column: 1 / -1; grid-row: 2 }
+}
+
+/* Saldos: um cartão por conta, porquinho com meta até o dia do pagamento */
+.saldos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px }
+.saldo { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--sc); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 6px; align-content: start; min-width: 0 }
+.saldo .v { font-family: var(--font-display); font-size: 1.55rem; font-weight: 700 }
+.saldo .v.neg { color: var(--bad) }
+.saldo .s { font-size: .8rem; color: var(--muted) }
+.saldo .bar > i { background: var(--sc) }
+.linkbtn { justify-self: start; border: 0; background: transparent; color: var(--accent); font-weight: 600; padding: 0; font-size: .85rem }
+.saldo-edit { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px }
+.saldo-edit input, .porq-meta input, .porq-meta select, .pagcom select { border: 1px solid var(--line); background: var(--surface-2); border-radius: 7px; padding: 6px 8px; width: 100%; min-width: 0 }
+.porq-meta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; align-items: end }
+.porq-meta label { display: grid; gap: 3px; font-size: .74rem; color: var(--muted) }
+.pagcom { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted) }
+.pagcom select { width: auto; padding: 4px 8px }
+.pag-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line) }
+.pag-row b { font-weight: 600 }
+.pag-row .dot { display: inline-block; width: 9px; height: 9px; border-radius: 3px; background: var(--sc); margin-right: 8px }
+@media (max-width: 900px) { .saldos { grid-template-columns: repeat(2, minmax(0, 1fr)) } .saldo.porq { grid-column: 1 / -1 } }
+
+/* Gasto rápido: valor no teclado, um toque na categoria salva */
+.wrap.rapido .monthnav { display: none }
+.rap { display: grid; gap: 14px; width: 100%; max-width: 520px }
+.rap-valor { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 16px; display: grid; gap: 2px }
+.rap-valor .v { font-family: var(--font-display); font-size: 2.6rem; font-weight: 700; line-height: 1.1 }
+.rap-valor .v.zero { color: var(--muted) }
+.keypad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
+.keypad button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; min-height: 52px; font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; touch-action: manipulation }
+.keypad button:active { background: var(--surface-2) }
+.rap-desc { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 12px; width: 100%; min-width: 0 }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center }
+.chips .label { margin-right: 4px }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 6px 12px; font-size: .85rem; font-weight: 600; color: var(--muted); touch-action: manipulation }
+.chips button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg) }
+.cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px }
+.cats button { border: 1px solid var(--line); border-left: 5px solid var(--cc); background: var(--surface); border-radius: 10px; min-height: 54px; padding: 8px 12px; text-align: left; font-weight: 600; touch-action: manipulation }
+.cats button:active { background: var(--surface-2) }
+.cats button:disabled { opacity: .45; cursor: default }
+.rap-hint { font-size: .85rem; color: var(--muted); margin: 0 }
+.rap-hoje { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: max-content; max-width: calc(100% - 32px); background: var(--fg); color: var(--bg); border-radius: 12px; padding: 10px 10px 10px 16px; display: flex; gap: 12px; align-items: center; z-index: 20; box-shadow: 0 6px 20px rgb(0 0 0 / .22); font-weight: 500 }
+.toast button { border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 8px; padding: 5px 10px; font-weight: 600; white-space: nowrap }
+
+/* Login (sincronização) e janela de ajustes */
+.topright { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.cloud { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: .85rem }
+.cloud::before { content: ""; width: 8px; height: 8px; border-radius: 99px; background: var(--muted) }
+.cloud.on::before { background: var(--good) }
+.cloud.err::before { background: var(--bad) }
+.topright .btn { border-radius: 999px; font-size: .85rem }
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--fg); padding: 18px; width: min(460px, calc(100% - 32px)) }
+dialog::backdrop { background: rgb(0 0 0 / .35) }
+dialog .dlg { display: grid; gap: 12px }
+dialog .dlg-h { display: flex; justify-content: space-between; align-items: start; gap: 10px }
+dialog p { margin: 0 }
+dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <div>
+      <div class="label">Família · contas fixas e dívidas</div>
+      <h1>Contas em dia</h1>
+    </div>
+    <div class="topright">
+      <button type="button" class="cloud" id="b-cloud" hidden>Entrar com Google</button>
+      <button type="button" class="btn" id="b-ajustes">Backup</button>
+      <div class="monthnav" role="group" aria-label="Mês">
+        <button id="prev" aria-label="Mês anterior">‹</button>
+        <div class="m" id="mesLabel"></div>
+        <button id="next" aria-label="Próximo mês">›</button>
+        <button id="hoje" class="today">Hoje</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <div class="tabs" role="tablist" aria-label="Seções">
+    <button role="tab" id="tabAgendar" aria-selected="false" aria-controls="viewAgendar">+ Agendar</button>
+    <button role="tab" id="tabAgenda" aria-selected="false" aria-controls="viewAgenda">Agendamentos<span class="count num" id="agCount"></span></button>
+    <button role="tab" id="tabRapido" aria-selected="false" aria-controls="viewRapido">Gasto rápido</button>
+    <button role="tab" id="tabSaldos" aria-selected="false" aria-controls="viewSaldos">Saldos</button>
+    <button role="tab" id="tabContas" aria-selected="false" aria-controls="viewContas">Contas</button>
+  </div>
+
+  <div class="view" id="viewSaldos" role="tabpanel" aria-labelledby="tabSaldos" hidden>
+    <div class="rap-hoje"><h2>Saldo das contas</h2><span class="muted num" id="saldoTotal"></span></div>
+    <section class="saldos" id="saldoCards"></section>
+    <div class="main">
+      <section class="panel">
+        <div class="panel-head"><h2>Movimentações</h2><span class="muted" style="font-size:.85rem">Gastos, ganhos, contas pagas e transferências, da mais nova para a mais antiga</span></div>
+        <div class="lanc" id="movList"></div>
+      </section>
+      <div class="side">
+        <section class="panel">
+          <div class="panel-head"><h2>Mover dinheiro</h2></div>
+          <form class="form" id="movForm" autocomplete="off">
+            <label>De<select id="mDe"></select></label>
+            <label>Para<select id="mPara"></select></label>
+            <label class="full">Valor (R$)<input id="mValor" inputmode="decimal" required placeholder="0,00"></label>
+            <button class="btn primary full" type="submit">Mover</button>
+          </form>
+          <p class="rap-hint">Para guardar no porquinho, escolha Para: Porquinho. Mover não conta como gasto.</p>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2 id="pagTitulo">Quem pagou no mês</h2></div>
+          <div id="porPagante"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="viewRapido" role="tabpanel" aria-labelledby="tabRapido" hidden>
+    <div class="rap">
+      <div class="rap-valor">
+        <span class="label">Quanto gastou?</span>
+        <span class="v num zero" id="rValor" aria-live="polite">R$ 0,00</span>
+      </div>
+      <div class="keypad" id="rKeypad">
+        <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+        <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+        <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+        <button type="button" data-k="00">00</button><button type="button" data-k="0">0</button><button type="button" data-k="del" aria-label="Apagar último número">⌫</button>
+      </div>
+      <div class="chips" id="rQuem" role="group" aria-label="Quem pagou"><span class="label">Quem pagou</span></div>
+      <input class="rap-desc" id="rDesc" placeholder="O quê? (opcional, ex.: padaria, farmácia)" autocomplete="off" aria-label="Descrição do gasto">
+      <div class="chips" id="rForma" role="group" aria-label="Forma de pagamento"><span class="label">Pago com</span></div>
+      <div class="chips" id="rDia" role="group" aria-label="Dia do gasto"><span class="label">Quando</span>
+        <button type="button" data-dia="hoje" aria-pressed="true">Hoje</button><button type="button" data-dia="ontem" aria-pressed="false">Ontem</button></div>
+      <p class="rap-hint" id="rHint">Digite o valor e toque na categoria para salvar.</p>
+      <div class="cats" id="rCats"></div>
+      <section class="panel">
+        <div class="rap-hoje"><h2>Gastos de hoje</h2><span class="muted num" id="rTotais"></span></div>
+        <div class="lanc" id="rLista"></div>
+      </section>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo">Desfazer</button></div>
+
+  <div class="view" id="viewAgendar" role="tabpanel" aria-labelledby="tabAgendar" hidden>
+    <div class="agendar">
+    <section class="panel" id="agFormPanel">
+      <div class="panel-head"><h2 id="agFormTitulo">Novo agendamento</h2></div>
+      <form class="ag-form" id="agForm" autocomplete="off">
+        <div class="seg full" role="group" aria-label="Tipo de atendimento" id="aTipo">
+          <button type="button" data-tipo="nova" aria-pressed="true">Nova tattoo</button>
+          <button type="button" data-tipo="retoque" aria-pressed="false">Retoque</button>
+        </div>
+        <label class="full">Nome<input id="aNome" required placeholder="Nome do cliente"></label>
+        <label class="full">Telefone<input id="aTel" type="tel" inputmode="tel" placeholder="(11) 99999-9999"></label>
+        <label class="full">Desenho<textarea id="aDesenho" placeholder="Ex.: rosa fineline no antebraço, 10 cm"></textarea></label>
+        <label>Valor (R$)<input id="aValor" inputmode="decimal" placeholder="0,00"></label>
+        <label>Tempo (horas)<input id="aTempo" inputmode="decimal" placeholder="ex.: 2 ou 1,5"></label>
+        <label>Data<input id="aData" type="date" required></label>
+        <label>Horário<input id="aHora" type="time" required></label>
+        <div class="actions">
+          <button type="button" class="btn" id="aCancelar" hidden>Cancelar</button>
+          <button type="submit" class="btn primary" id="aSalvar">Agendar</button>
+        </div>
+      </form>
+    </section>
+      <section class="panel">
+        <div class="panel-head"><h2 id="agMarcTitulo">Já marcados neste dia</h2></div>
+        <div class="prox" id="agMarcados"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="view" id="viewAgenda" role="tabpanel" aria-labelledby="tabAgenda" hidden>
+    <button class="btn primary novo-ag" id="agNovo">+ Novo agendamento</button>
+    <section class="tiles" id="agTiles"></section>
+    <div class="ag-main">
+      <section class="panel">
+        <div class="panel-head"><h2>Calendário de agendamentos</h2><div class="legend"><span style="--c:var(--studio)">Nova tattoo</span><span style="--c:var(--capital)">Retoque</span></div></div>
+        <div class="cal" id="cal"></div>
+      </section>
+      <div class="side">
+        <section class="panel">
+          <div class="panel-head"><h2 id="agDiaTitulo">Dia</h2></div>
+          <div class="ag-list" id="agDia"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Próximos</h2></div>
+          <div class="prox" id="agProx"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="viewContas" role="tabpanel" aria-labelledby="tabContas">
+
+  <section class="panel ganhos-top">
+    <div class="panel-head"><h2>Ganhos do mês</h2><span class="muted" style="font-size:.85rem">Total <b class="num" style="color:var(--fg)" id="ganhosTot"></b></span></div>
+    <div class="shares" id="ganhosShare" aria-hidden="true"></div>
+    <div id="ganhos" class="ganhos-grid"></div>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <div class="main">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Contas do mês</h2>
+        <label class="pagcom">Ao marcar como paga, sai da conta<select id="pagCom"></select></label>
+      </div>
+      <div id="grupos" style="display:grid;gap:18px"></div>
+      <div class="grand"><span>Total de contas fixas</span><span class="num" id="grandTotal"></span></div>
+    </section>
+
+    <div class="side">
+      <section class="panel">
+        <div class="panel-head"><h2>Entradas e saídas</h2></div>
+        <form class="form" id="lancForm" autocomplete="off">
+          <div class="seg full" role="group" aria-label="Tipo">
+            <button type="button" id="tEntrada" aria-pressed="false">Entrada</button>
+            <button type="button" id="tSaida" aria-pressed="true">Saída</button>
+          </div>
+          <label class="full">Descrição<input id="lDesc" required placeholder="Ex.: mercado, salário, farmácia"></label>
+          <label>Valor (R$)<input id="lValor" inputmode="decimal" required placeholder="0,00"></label>
+          <label>Data<input id="lData" type="date" required></label>
+          <label><span id="lCatLabel">Categoria</span><select id="lCat"></select></label>
+          <label>Conta<select id="lConta"></select></label>
+          <button class="btn primary full" type="submit">Registrar</button>
+        </form>
+        <div class="split" id="lancTot"></div>
+        <div class="lanc" id="lancList"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Dívidas e parcelas</h2>
+      <span class="muted" style="font-size:.85rem">Previsão de término contada a partir da parcela atual</span>
+    </div>
+    <div class="debt-summary" id="debtSummary"></div>
+    <div class="debts" id="debts"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Contas fixas nos próximos 12 meses</h2>
+      <div class="legend"><span style="--c:var(--casa)">Casa</span><span style="--c:var(--trabalho)">Trabalho</span><span style="--c:var(--cartao)">Cartão</span></div>
+    </div>
+    <div class="chart-wrap"><svg class="chart" id="chart" viewBox="0 0 760 250" role="img" aria-label="Total de contas fixas por mês"></svg></div>
+    <p class="muted" style="margin:0;font-size:.85rem" id="chartNote"></p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 id="catTitulo">Para onde foi o dinheiro</h2>
+      <span class="muted num" style="font-size:.85rem" id="catTotal"></span>
+    </div>
+    <div class="cat-bars" id="catBars"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Ganhos e gastos por mês</h2>
+      <div class="legend"><span style="--c:var(--accent)">Ganhos</span><span style="--c:var(--trabalho)">Gastos</span></div>
+    </div>
+    <div class="chart-wrap"><svg class="chart" id="chartGG" viewBox="0 0 760 250" role="img" aria-label="Ganhos e gastos nos últimos 6 meses"></svg></div>
+    <p class="muted" style="margin:0;font-size:.85rem" id="ggNote"></p>
+  </section>
+  </div>
+</div>
+
+<dialog id="dlg-cloud">
+  <div class="dlg">
+    <div class="dlg-h"><h3>Sincronização</h3><button type="button" class="icon" data-close aria-label="Fechar">×</button></div>
+    <div id="dcl-b" class="dlg"></div>
+  </div>
+</dialog>
+
+<dialog id="dlg-ajustes">
+  <div class="dlg">
+    <div class="dlg-h"><h3>Backup</h3><button type="button" class="icon" data-close aria-label="Fechar">×</button></div>
+    <p class="muted" style="font-size:.85rem">Baixe um arquivo com todos os dados, ou restaure um backup salvo antes. Restaurar troca tudo o que está aqui pelo conteúdo do arquivo.</p>
+    <div class="row2">
+      <button type="button" class="btn" id="b-exportar">Baixar backup</button>
+      <label class="btn" style="display:inline-block;color:var(--fg);font-size:inherit">Restaurar backup<input type="file" id="f-importar" accept="application/json,.json" hidden></label>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  const GRUPOS = [
+    { id: "casa", nome: "Casa" },
+    { id: "trabalho", nome: "Trabalho" },
+    { id: "cartao", nome: "Cartão" },
+  ];
+  const CATS = ["Mercado", "Alimentação", "Combustível", "Compras", "Saúde", "Escola e crianças", "Lazer", "Casa", "Trabalho", "Outros"];
+  const FONTES = [
+    { id: "studio", nome: "Ganho do studio" },
+    { id: "mesa", nome: "Mesa proprietária" },
+    { id: "capital", nome: "Capital próprio" },
+    { id: "outros", nome: "Outros ganhos" },
+  ];
+  const fonteDe = l => FONTES.some(f => f.id === l.fonte) ? l.fonte : "outros";
+  // Contas bancárias da família; o porquinho guarda dinheiro para o dia do pagamento
+  const CONTAS_B = [
+    { id: "lineti", nome: "Lineti", cor: "mesa" },
+    { id: "micaela", nome: "Micaela", cor: "capital" },
+    { id: "studio", nome: "Studio", cor: "studio" },
+    { id: "porquinho", nome: "Porquinho", cor: "trabalho" },
+  ];
+  const PAGADORES = CONTAS_B.filter(c => c.id !== "porquinho");
+  const nomeConta = id => CONTAS_B.find(c => c.id === id)?.nome || "";
+  const tsDe = id => parseInt(String(id || "").slice(1), 36) || 0;
+  const contaPaga = p => p && typeof p === "object" ? p.conta : null;
+  const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+  const fmt = v => brl.format(v || 0);
+  const kfmt = v => v >= 1000 ? (v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mil" : Math.round(v).toString();
+  const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const parseNum = s => { if (typeof s === "number") return s; s = String(s || "").trim().replace(/[R$\s]/g, ""); if (s.includes(",")) s = s.replace(/\./g, "").replace(",", "."); const n = parseFloat(s); return isNaN(n) ? 0 : n; };
+  const numStr = v => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const ymOf = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  const ymAdd = (ym, n) => { const [y, m] = ym.split("-").map(Number); const d = new Date(y, m - 1 + n, 1); return ymOf(d); };
+  const ymDiff = (a, b) => { const [ay, am] = a.split("-").map(Number); const [by, bm] = b.split("-").map(Number); return (by - ay) * 12 + (bm - am); };
+  const ymLabel = ym => { const [y, m] = ym.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }); };
+  const ymShort = ym => { const [y, m] = ym.split("-").map(Number); return MESES[m - 1] + "/" + String(y).slice(2); };
+
+  const hoje = new Date();
+  const hojeYm = ymOf(hoje);
+  let mes = hojeYm;
+  try { const s = sessionStorage.getItem("mes"); if (s) mes = s; } catch (e) {}
+
+  const state = { contas: {}, meses: {}, rendas: [], agenda: {}, saldos: {}, ready: false };
+  let db = null;
+  // Quem está usando este celular; lembrado só neste aparelho
+  let pagador = "lineti";
+  try { const p = localStorage.getItem("familia-pagador"); if (p === "" || PAGADORES.some(c => c.id === p)) pagador = p; } catch (e) {}
+  const setPagador = p => { pagador = p; try { localStorage.setItem("familia-pagador", p); } catch (e) {} };
+  let editing = null;
+  let tipo = "saida";
+  let armedDelete = null;
+
+  // Parcelas: parcelaAtual é o número da parcela no mês refMes.
+  const temParcelas = c => c.parcelaTotal > 0 && c.parcelaAtual > 0 && c.refMes;
+  const parcelaNo = (c, ym) => temParcelas(c) ? c.parcelaAtual + ymDiff(c.refMes, ym) : null;
+  const ativaNo = (c, ym) => { if (!temParcelas(c)) return true; const n = parcelaNo(c, ym); return n >= 1 && n <= c.parcelaTotal; };
+  const fimDe = c => temParcelas(c) ? ymAdd(c.refMes, c.parcelaTotal - c.parcelaAtual) : null;
+  const mesDoc = ym => { const m = state.meses[ym] || {}; return { pagos: { ...(m.pagos || {}) }, valores: { ...(m.valores || {}) }, lancamentos: [...(m.lancamentos || [])] }; };
+  const valorNo = (c, ym) => { const v = mesDoc(ym).valores?.[c.id]; return typeof v === "number" ? v : (c.valor || 0); };
+  const contasLista = () => Object.values(state.contas).sort((a, b) => (a.dia || 99) - (b.dia || 99) || (a.ordem || 0) - (b.ordem || 0));
+
+  // Uma escrita por vez para cada documento
+  const queues = {};
+  function write(path, fn) {
+        queues[path] = (queues[path] || Promise.resolve()).then(fn).catch(e => {
+      showNotice(e?.code === "quota_exceeded" ? "O espaço de dados acabou. Apague lançamentos antigos." : "Não deu para salvar a última mudança. Confira a conexão e tente de novo.");
+    });
+    return queues[path];
+  }
+  function saveMes(ym) {
+    const d = state.meses[ym] || mesDoc(ym);
+    state.meses[ym] = d;
+    const data = { pagos: d.pagos || {}, valores: d.valores || {}, lancamentos: d.lancamentos || [] };
+    softRender();
+    write("meses/" + ym, () => db.doc("meses/" + ym).set(data));
+  }
+  function saveConta(c) {
+    state.contas[c.id] = c;
+    softRender();
+    const { id, ...data } = c;
+    write("contas/" + id, () => db.collection("contas").doc(id).set(data));
+  }
+  function deleteConta(id) {
+    delete state.contas[id];
+    softRender();
+    write("contas/" + id, () => db.collection("contas").doc(id).delete());
+  }
+  function saveRendas() {
+    softRender();
+    write("config/geral", () => db.doc("config/geral").set({ rendas: state.rendas }));
+  }
+  function showNotice(t) { const n = $("notice"); n.textContent = t; n.hidden = !t; }
+
+  function statusDe(c, ym, pago) {
+    if (pago) return ["ok", "Paga"];
+    if (!c.dia) return ["", "Sem dia"];
+    const diff = ymDiff(hojeYm, ym);
+    if (diff < 0) return ["late", "Atrasada"];
+    if (diff > 0) return ["", "Vence dia " + c.dia];
+    const falta = c.dia - hoje.getDate();
+    if (falta < 0) return ["late", "Atrasada"];
+    if (falta === 0) return ["soon", "Vence hoje"];
+    if (falta <= 5) return ["soon", "Vence em " + falta + (falta === 1 ? " dia" : " dias")];
+    return ["", "Vence dia " + c.dia];
+  }
+
+  function totaisMes(ym) {
+    const d = mesDoc(ym);
+    const t = { casa: 0, trabalho: 0, cartao: 0, total: 0, pago: 0 };
+    for (const c of contasLista()) {
+      if (!ativaNo(c, ym)) continue;
+      const v = valorNo(c, ym);
+      t[c.grupo] = (t[c.grupo] || 0) + v; t.total += v;
+      if (d.pagos?.[c.id]) t.pago += v;
+    }
+    return t;
+  }
+
+  // Não redesenha enquanto alguém digita num campo; redesenha ao sair dele
+  let pendente = false;
+  const digitando = () => { const a = document.activeElement; return a && a.matches("input:not([type=checkbox]), select") && !a.closest("#lancForm"); };
+  function softRender() { if (digitando()) pendente = true; else render(); }
+  document.addEventListener("focusout", () => setTimeout(() => { if (pendente && !digitando()) { pendente = false; render(); } }, 0));
+
+  function render() {
+    pendente = false;
+    const ml = ymLabel(mes); $("mesLabel").textContent = ml[0].toUpperCase() + ml.slice(1);
+    $("hoje").hidden = mes === hojeYm;
+    renderTiles(); renderGrupos(); renderLanc(); renderGanhos(); renderDebts(); renderChart(); renderAgenda(); renderRapido(); renderSaldos(); renderCategorias(); renderGG();
+  }
+
+  // Gastos do mês = contas fixas do mês + saídas lançadas; ganhos = entradas lançadas
+  function gastosDoMes(ym) {
+    const t = totaisMes(ym);
+    const saidas = (mesDoc(ym).lancamentos || []).filter(l => l.tipo === "saida");
+    const porCat = {};
+    for (const l of saidas) { const c = l.cat || "Outros"; porCat[c] = (porCat[c] || 0) + l.valor; }
+    const linhas = Object.entries(porCat).map(([nome, v]) => ({ nome, v, fixa: false }));
+    for (const g of GRUPOS) if (t[g.id]) linhas.push({ nome: "Contas fixas · " + g.nome, v: t[g.id], fixa: true });
+    return { linhas: linhas.sort((a, b) => b.v - a.v), total: linhas.reduce((s, x) => s + x.v, 0) };
+  }
+  const ganhosDoMes = ym => (mesDoc(ym).lancamentos || []).filter(l => l.tipo === "entrada").reduce((s, l) => s + l.valor, 0) + state.rendas.reduce((s, r) => s + (r.valor || 0), 0);
+
+  function renderCategorias() {
+    const { linhas, total } = gastosDoMes(mes);
+    $("catTitulo").textContent = "Para onde foi o dinheiro em " + ymLabel(mes);
+    $("catTotal").textContent = total ? "Total " + fmt(total) : "";
+    const max = Math.max(1, ...linhas.map(x => x.v));
+    const soFixas = linhas.every(x => x.fixa);
+    $("catBars").innerHTML = linhas.map(x => `<div class="cat-row" title="${esc(x.nome)}: ${fmt(x.v)}">
+        <span class="cat-nome">${esc(x.nome)}</span>
+        <span class="cat-track"><i class="${x.fixa ? "fixa" : ""}" style="width:${x.v / max * 100}%"></i></span>
+        <span class="cat-v num">${fmt(x.v)}<small>${total ? Math.round(x.v / total * 100) + "%" : ""}</small></span></div>`).join("")
+      + (soFixas ? `<p class="empty">Ainda não há gastos do dia a dia neste mês. Cada gasto lançado no Gasto rápido entra aqui na categoria escolhida (Mercado, Alimentação, Combustível, Compras…).</p>` : "");
+  }
+
+  function renderGG() {
+    const W = 760, H = 250, padL = 8, padR = 8, top = 26, bottom = 36;
+    const months = Array.from({ length: 6 }, (_, i) => ymAdd(mes, i - 5));
+    const data = months.map(ym => ({ ym, g: ganhosDoMes(ym), s: gastosDoMes(ym).total }));
+    const max = Math.max(1, ...data.flatMap(d => [d.g, d.s])) * 1.12;
+    const ih = H - top - bottom, slot = (W - padL - padR) / 6, bw = Math.min(44, slot * 0.3);
+    const y = v => top + ih - v / max * ih;
+    let s = `<line class="grid" x1="${padL}" x2="${W - padR}" y1="${top + ih}" y2="${top + ih}"/>`;
+    data.forEach((d, i) => {
+      const cx = padL + i * slot + slot / 2;
+      [["g", "var(--accent)", cx - bw - 1, "Ganhos"], ["s", "var(--trabalho)", cx + 1, "Gastos"]].forEach(([k, col, x, nome]) => {
+        const v = d[k]; if (!v) return;
+        s += `<rect x="${x}" y="${y(v)}" width="${bw}" height="${Math.max(0, top + ih - y(v))}" rx="4" fill="${col}"><title>${ymShort(d.ym)} · ${nome}: ${fmt(v)}</title></rect>`;
+        s += `<text class="tv" x="${x + bw / 2}" y="${y(v) - 6}" text-anchor="middle">${kfmt(v)}</text>`;
+      });
+      s += `<text x="${cx}" y="${H - bottom + 18}" text-anchor="middle" ${d.ym === mes ? 'class="tv"' : ""}>${ymShort(d.ym)}</text>`;
+    });
+    $("chartGG").innerHTML = s;
+    const atual = data[5];
+    $("ggNote").textContent = atual.g ? `${ymLabel(mes)}: ganhos ${fmt(atual.g)}, gastos ${fmt(atual.s)}, ${atual.g >= atual.s ? "sobraram " + fmt(atual.g - atual.s) : "faltaram " + fmt(atual.s - atual.g)}.`
+      : "Os ganhos aparecem aqui quando forem lançados em Ganhos do mês. Os gastos já incluem as contas fixas.";
+  }
+
+  function renderTiles() {
+    const t = totaisMes(mes);
+    const d = mesDoc(mes);
+    const lanc = d.lancamentos || [];
+    const rendaFixa = state.rendas.reduce((s, r) => s + (r.valor || 0), 0);
+    const entradas = lanc.filter(l => l.tipo === "entrada").reduce((s, l) => s + l.valor, 0);
+    const saidas = lanc.filter(l => l.tipo === "saida").reduce((s, l) => s + l.valor, 0);
+    const totalEntr = rendaFixa + entradas;
+    const sobra = totalEntr - t.total - saidas;
+    const pct = t.total ? Math.round(t.pago / t.total * 100) : 0;
+    const semRenda = totalEntr === 0;
+    $("tiles").innerHTML = `
+      <div class="tile"><span class="label">Entradas do mês</span><span class="v num">${fmt(totalEntr)}</span>
+        <span class="s">${semRenda ? "Lance os ganhos do studio, da mesa e do capital ao lado" : FONTES.map(f => [f, lanc.filter(l => l.tipo === "entrada" && fonteDe(l) === f.id).reduce((s, l) => s + l.valor, 0)]).filter(([f, v]) => v).map(([f, v]) => `${({ studio: "Studio", mesa: "Mesa", capital: "Capital", outros: "Outros" })[f.id]} ${fmt(v)}`).join(" · ")}</span></div>
+      <div class="tile"><span class="label">Contas fixas</span><span class="v num">${fmt(t.total)}</span>
+        <span class="s num">Pago ${fmt(t.pago)} · falta ${fmt(t.total - t.pago)}</span><div class="bar" aria-label="${pct}% pago"><i style="width:${pct}%"></i></div></div>
+      <div class="tile"><span class="label">Outras saídas</span><span class="v num">${fmt(saidas)}</span>
+        <span class="s">${lanc.filter(l => l.tipo === "saida").length} lançamentos neste mês</span></div>
+      <div class="tile hero"><span class="label">Sobra prevista</span><span class="v num">${semRenda ? "—" : fmt(sobra)}</span>
+        <span class="s">${semRenda ? "Aparece quando houver ganhos lançados" : sobra < 0 ? "Atenção: falta dinheiro para fechar o mês" : "Entradas menos contas e saídas"}</span></div>`;
+  }
+
+  function rowHTML(c) {
+    const d = mesDoc(mes);
+    const pago = !!d.pagos?.[c.id];
+    const [cls, txt] = statusDe(c, mes, pago);
+    const n = parcelaNo(c, mes);
+    const quem = contaPaga(d.pagos?.[c.id]);
+    const sub = [temParcelas(c) ? `Parcela ${n} de ${c.parcelaTotal}` : (c.divida ? "Parcelas: informe em Dívidas" : ""), quem ? "pago pela conta " + nomeConta(quem) : ""].filter(Boolean).join(" · ");
+    const ov = typeof d.valores?.[c.id] === "number" && d.valores[c.id] !== c.valor;
+    let html = `<div class="row ${pago ? "paid" : ""}" data-id="${c.id}">
+      <input type="checkbox" class="check" data-act="pago" ${pago ? "checked" : ""} aria-label="Marcar ${esc(c.nome)} como paga">
+      <span class="nome">${esc(c.nome)}${sub || ov ? `<span class="sub">${esc(sub)}${sub && ov ? " · " : ""}${ov ? "valor só deste mês" : ""}</span>` : ""}</span>
+      <label class="dia">dia<input class="field" data-act="dia" inputmode="numeric" value="${c.dia || ""}" placeholder="–" aria-label="Dia de vencimento"></label>
+      <span class="valcell"><input class="field" data-act="valor" inputmode="decimal" value="${numStr(valorNo(c, mes))}" aria-label="Valor de ${esc(c.nome)} neste mês"></span>
+      <span class="pill ${cls}">${txt}</span>
+      <button class="icon" data-act="edit" aria-label="Editar ${esc(c.nome)}" title="Editar">✎</button>`;
+    if (editing === c.id) {
+      html += `<div class="editor">
+        <label>Nome<input id="eNome" value="${esc(c.nome)}"></label>
+        <label>Grupo<select id="eGrupo">${GRUPOS.map(g => `<option value="${g.id}" ${g.id === c.grupo ? "selected" : ""}>${g.nome}</option>`).join("")}</select></label>
+        <label>Valor padrão (todo mês)<input id="eValor" inputmode="decimal" value="${numStr(c.valor)}"></label>
+        <label>Dia de vencimento<input id="eDia" inputmode="numeric" value="${c.dia || ""}"></label>
+        <label>Parcela neste mês<input id="eAtual" inputmode="numeric" value="${temParcelas(c) ? n : ""}" placeholder="ex.: 4"></label>
+        <label>Total de parcelas<input id="eTotal" inputmode="numeric" value="${c.parcelaTotal || ""}" placeholder="ex.: 12"></label>
+        <div class="actions">
+          <button class="btn danger ${armedDelete === c.id ? "armed" : ""}" data-act="del">${armedDelete === c.id ? "Confirmar exclusão" : "Excluir conta"}</button>
+          <span style="display:flex;gap:8px"><button class="btn" data-act="cancel">Cancelar</button><button class="btn primary" data-act="save">Salvar</button></span>
+        </div></div>`;
+    }
+    return html + `</div>`;
+  }
+
+  function renderGrupos() {
+    const t = totaisMes(mes);
+    const lista = contasLista().filter(c => ativaNo(c, mes));
+    if (!state.ready) { $("grupos").innerHTML = `<p class="empty">Carregando as contas…</p>`; $("grandTotal").textContent = ""; return; }
+    $("grupos").innerHTML = GRUPOS.map(g => {
+      const cs = lista.filter(c => c.grupo === g.id);
+      return `<div class="group g-${g.id}">
+        <div class="group-head"><span class="dot"></span><h3>${g.nome}</h3><span class="tot num">${fmt(t[g.id])}</span></div>
+        ${cs.length ? cs.map(rowHTML).join("") : `<p class="empty">Nenhuma conta de ${g.nome.toLowerCase()} neste mês.</p>`}
+        <button class="addbtn" data-add="${g.id}">+ Adicionar conta</button></div>`;
+    }).join("");
+    $("grandTotal").textContent = fmt(t.total);
+  }
+
+  function renderLanc() {
+    const lanc = (mesDoc(mes).lancamentos || []).filter(l => l.tipo !== "transf").sort((a, b) => b.data.localeCompare(a.data));
+    const e = lanc.filter(l => l.tipo === "entrada").reduce((s, l) => s + l.valor, 0);
+    const s = lanc.filter(l => l.tipo === "saida").reduce((s, l) => s + l.valor, 0);
+    $("lancTot").innerHTML = `<span>Entradas <b class="num" style="color:var(--good)">${fmt(e)}</b></span><span>Saídas <b class="num" style="color:var(--bad)">${fmt(s)}</b></span>`;
+    $("lancList").innerHTML = lanc.length ? lanc.map(l => `<div class="lanc-row">
+      <span class="d num">${l.data.slice(8, 10)}/${l.data.slice(5, 7)}</span>
+      <span>${esc(l.desc || l.cat)}<span class="c">${esc(l.cat)}${l.conta ? " · " + esc(nomeConta(l.conta)) : ""}${l.forma ? " · " + esc(l.forma) : ""}</span></span>
+      <span class="val num ${l.tipo === "entrada" ? "in" : "out"}">${l.tipo === "entrada" ? "+" : "−"} ${fmt(l.valor)}</span>
+      <button class="icon" data-dellanc="${l.id}" aria-label="Apagar lançamento">×</button></div>`).join("")
+      : `<p class="empty">Nada registrado em ${ymLabel(mes)}. Use o formulário para lançar mercado, salário, gastos extras.</p>`;
+  }
+
+  function renderGanhos() {
+    if (document.activeElement && $("ganhos").contains(document.activeElement) && document.activeElement.matches("input")) return;
+    const ent = (mesDoc(mes).lancamentos || []).filter(l => l.tipo === "entrada");
+    const tot = ent.reduce((s, l) => s + l.valor, 0);
+    $("ganhosTot").textContent = fmt(tot);
+    const porFonte = FONTES.map(f => { const ls = ent.filter(l => fonteDe(l) === f.id).sort((a, b) => b.data.localeCompare(a.data)); return { f, ls, t: ls.reduce((s, l) => s + l.valor, 0) }; });
+    const pos = porFonte.reduce((s, x) => s + Math.max(0, x.t), 0);
+    $("ganhosShare").innerHTML = pos ? porFonte.filter(x => x.t > 0).map(x => `<i style="width:${x.t / pos * 100}%;background:var(--${x.f.id})" title="${x.f.nome}"></i>`).join("") : "";
+    $("ganhos").innerHTML = porFonte.filter(x => x.f.id !== "outros" || x.ls.length).map(({ f, ls, t }) => `<div class="fonte" style="--fc:var(--${f.id})">
+      <div class="fonte-head"><h3>${f.nome}</h3><span class="t num ${t < 0 ? "val neg" : ""}">${fmt(t)}</span></div>
+      ${ls.map(l => `<div class="lanc-row"><span class="d num">${l.data.slice(8, 10)}/${l.data.slice(5, 7)}</span><span>${esc(l.desc || "—")}</span>
+        <span class="val num ${l.valor < 0 ? "neg" : "in"}">${fmt(l.valor)}</span><button class="icon" data-dellanc="${l.id}" aria-label="Apagar ganho">×</button></div>`).join("")}
+      ${f.id === "outros" ? "" : `<form class="fonte-add" data-fonte="${f.id}" autocomplete="off">
+        <input name="desc" placeholder="${f.id === "mesa" ? "Ex.: repasse, saque" : f.id === "capital" ? "Ex.: rendimento, retirada" : "Ex.: atendimentos, aulas"}" aria-label="Descrição">
+        <input name="valor" class="num" inputmode="decimal" placeholder="0,00" aria-label="Valor" required>
+        <button class="btn" type="submit">Lançar</button></form>`}
+    </div>`).join("") + (ent.length ? "" : `<p class="empty">Nenhum ganho lançado em ${ymLabel(mes)}. Para a mesa, um valor negativo registra perda.</p>`);
+  }
+
+  function renderDebts() {
+    const ds = contasLista().filter(c => c.divida || temParcelas(c));
+    let saldo = 0, mensal = 0, ultimo = null, desconhecidas = 0;
+    const cards = ds.map(c => {
+      const g = c.grupo;
+      if (!temParcelas(c)) {
+        desconhecidas++;
+        return `<div class="debt g-${g}" data-id="${c.id}">
+          <div class="top"><b>${esc(c.nome)}</b><span class="num">${fmt(c.valor)}/mês</span></div>
+          <span class="muted" style="font-size:.85rem">Quantas parcelas faltam? Informe para ver quando termina.</span>
+          <div class="ask"><label>Parcela atual<input data-ask="atual" inputmode="numeric" placeholder="ex.: 18"></label>
+            <label>Total<input data-ask="total" inputmode="numeric" placeholder="ex.: 48"></label>
+            <button class="btn primary" data-act="askSave">OK</button></div></div>`;
+      }
+      const n = Math.max(0, parcelaNo(c, mes));
+      const restantes = Math.max(0, c.parcelaTotal - n + 1);
+      const fim = fimDe(c);
+      const acabou = n > c.parcelaTotal;
+      if (!acabou) { saldo += restantes * c.valor; mensal += c.valor; if (!ultimo || fim > ultimo) ultimo = fim; }
+      const pct = Math.min(100, Math.round(Math.min(n, c.parcelaTotal) / c.parcelaTotal * 100));
+      return `<div class="debt g-${g}">
+        <div class="top"><b>${esc(c.nome)}</b><span class="num muted">${fmt(c.valor)}/mês</span></div>
+        <div class="top"><span class="label">${acabou ? "Terminou em" : "Termina em"}</span><span class="end">${ymLabel(fim)}</span></div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="top" style="font-size:.85rem"><span class="muted num">${acabou ? "Quitada" : `Parcela ${Math.max(1, n)} de ${c.parcelaTotal}`}</span>
+          <span class="num">${acabou ? "" : `Faltam ${restantes} · ${fmt(restantes * c.valor)}`}</span></div></div>`;
+    });
+    $("debts").innerHTML = cards.join("") || `<p class="empty">Nenhuma dívida parcelada. Para acompanhar uma, edite a conta e informe as parcelas.</p>`;
+    $("debtSummary").innerHTML = `
+      <div><span class="label">Ainda a pagar (de ${ymLabel(mes)} em diante)</span><span class="v num">${fmt(saldo)}</span></div>
+      <div><span class="label">Parcelas por mês</span><span class="v num">${fmt(mensal)}</span></div>
+      <div><span class="label">Última parcela</span><span class="v">${ultimo ? ymLabel(ultimo) : "—"}</span></div>
+      ${desconhecidas ? `<div><span class="label">Sem previsão</span><span class="v" style="color:var(--warn)">${desconhecidas} ${desconhecidas === 1 ? "dívida" : "dívidas"}</span></div>` : ""}`;
+  }
+
+  function renderChart() {
+    const W = 760, H = 250, padL = 8, padR = 8, top = 26, bottom = 36;
+    const months = Array.from({ length: 12 }, (_, i) => ymAdd(mes, i));
+    const data = months.map(ym => {
+      const r = { ym, casa: 0, trabalho: 0, cartao: 0 };
+      for (const c of contasLista()) if (ativaNo(c, ym)) r[c.grupo] += c.valor || 0;
+      r.total = r.casa + r.trabalho + r.cartao; return r;
+    });
+    const max = Math.max(1, ...data.map(d => d.total)) * 1.08;
+    const ih = H - top - bottom, slot = (W - padL - padR) / 12, bw = slot * 0.62;
+    const y = v => top + ih - v / max * ih;
+    let s = `<line class="grid" x1="${padL}" x2="${W - padR}" y1="${top + ih}" y2="${top + ih}"/>`;
+    data.forEach((d, i) => {
+      const x = padL + i * slot + (slot - bw) / 2;
+      let acc = 0;
+      for (const [k, col] of [["casa", "var(--casa)"], ["trabalho", "var(--trabalho)"], ["cartao", "var(--cartao)"]]) {
+        if (!d[k]) continue;
+        const y1 = y(acc + d[k]), h = y(acc) - y1;
+        s += `<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(0, h - 1)}" rx="2" fill="${col}"><title>${ymShort(d.ym)} · ${k === "cartao" ? "Cartão" : k[0].toUpperCase() + k.slice(1)}: ${fmt(d[k])}</title></rect>`;
+        acc += d[k];
+      }
+      s += `<text class="tv" x="${x + bw / 2}" y="${y(d.total) - 6}" text-anchor="middle">${kfmt(d.total)}</text>`;
+      s += `<text x="${x + bw / 2}" y="${H - bottom + 18}" text-anchor="middle">${ymShort(d.ym)}</text>`;
+    });
+    $("chart").innerHTML = s;
+    const quedas = [];
+    for (let i = 1; i < data.length; i++) { const dif = data[i - 1].total - data[i].total; if (dif > 0.5) quedas.push(`${ymShort(data[i].ym)} cai ${fmt(dif)}`); }
+    $("chartNote").textContent = quedas.length ? "Alívio previsto quando parcelas terminam: " + quedas.join(" · ") + "." : "Sem parcelas terminando nos próximos 12 meses (ou faltam informar as parcelas de carro e terreno).";
+  }
+
+  // Eventos
+  $("prev").onclick = () => setMes(ymAdd(mes, -1));
+  $("next").onclick = () => setMes(ymAdd(mes, 1));
+  $("hoje").onclick = () => setMes(hojeYm);
+  function setMes(ym) { mes = ym; editing = null; try { sessionStorage.setItem("mes", ym); } catch (e) {} resetData(); render(); }
+  function resetData() {
+    const [y, m] = mes.split("-").map(Number);
+    const dia = mes === hojeYm ? hoje.getDate() : 1;
+    $("lData").value = `${y}-${String(m).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+  }
+
+  $("grupos").addEventListener("change", e => {
+    const row = e.target.closest(".row"); if (!row) return;
+    const c = state.contas[row.dataset.id]; const act = e.target.dataset.act;
+    if (act === "pago") { const d = mesDoc(mes); d.pagos = { ...(d.pagos || {}) }; if (e.target.checked) d.pagos[c.id] = pagador ? { conta: pagador, em: Date.now() } : true; else delete d.pagos[c.id]; state.meses[mes] = d; saveMes(mes); }
+    if (act === "valor") { const d = mesDoc(mes); d.valores = { ...(d.valores || {}) }; const v = parseNum(e.target.value); if (v === c.valor) delete d.valores[c.id]; else d.valores[c.id] = v; state.meses[mes] = d; saveMes(mes); }
+    if (act === "dia") { const v = Math.min(31, Math.max(0, parseInt(e.target.value) || 0)); saveConta({ ...c, dia: v || null }); }
+  });
+  $("grupos").addEventListener("click", e => {
+    const add = e.target.closest("[data-add]");
+    if (add) { const id = "c" + Date.now().toString(36); editing = id; saveConta({ id, nome: "Nova conta", valor: 0, grupo: add.dataset.add, dia: null, ordem: Date.now() }); return; }
+    const btn = e.target.closest("button[data-act]"); if (!btn) return;
+    const row = btn.closest(".row"); const c = state.contas[row.dataset.id]; const act = btn.dataset.act;
+    if (act === "edit") { editing = editing === c.id ? null : c.id; armedDelete = null; renderGrupos(); }
+    if (act === "cancel") { editing = null; armedDelete = null; renderGrupos(); }
+    if (act === "del") { if (armedDelete === c.id) { armedDelete = null; editing = null; deleteConta(c.id); } else { armedDelete = c.id; renderGrupos(); } }
+    if (act === "save") {
+      const atual = parseInt($("eAtual").value) || 0, total = parseInt($("eTotal").value) || 0;
+      const nc = { ...c, nome: $("eNome").value.trim() || c.nome, grupo: $("eGrupo").value, valor: parseNum($("eValor").value), dia: parseInt($("eDia").value) || null };
+      if (atual > 0 && total > 0) Object.assign(nc, { parcelaAtual: atual, parcelaTotal: total, refMes: mes }); else { delete nc.parcelaAtual; delete nc.parcelaTotal; delete nc.refMes; }
+      editing = null; saveConta(nc);
+    }
+  });
+  $("grupos").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".field")) e.target.blur(); });
+
+  $("debts").addEventListener("click", e => {
+    const btn = e.target.closest("[data-act='askSave']"); if (!btn) return;
+    const card = btn.closest(".debt"); const c = state.contas[card.dataset.id];
+    const atual = parseInt(card.querySelector("[data-ask='atual']").value) || 0, total = parseInt(card.querySelector("[data-ask='total']").value) || 0;
+    if (atual < 1 || total < atual) { showNotice("Informe a parcela atual e o total (o total não pode ser menor que a atual)."); return; }
+    showNotice(""); saveConta({ ...c, parcelaAtual: atual, parcelaTotal: total, refMes: mes });
+  });
+
+  const setTipo = t => { tipo = t; $("tEntrada").setAttribute("aria-pressed", t === "entrada"); $("tSaida").setAttribute("aria-pressed", t === "saida"); $("lCatLabel").textContent = t === "entrada" ? "Fonte do ganho" : "Categoria"; $("lCat").innerHTML = t === "entrada" ? FONTES.map(f => `<option value="${f.id}">${f.nome}</option>`).join("") : CATS.map(c => `<option>${c}</option>`).join(""); };
+  $("tEntrada").onclick = () => setTipo("entrada");
+  $("tSaida").onclick = () => setTipo("saida");
+  $("lancForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const valor = parseNum($("lValor").value); const data = $("lData").value;
+    if (!valor || !data) return;
+    const ym = data.slice(0, 7);
+    const d = mesDoc(ym);
+    const conta = $("lConta").value;
+    if (conta) setPagador(conta);
+    d.lancamentos = [...(d.lancamentos || []), { id: "l" + Date.now().toString(36), tipo, desc: $("lDesc").value.trim(), valor, data, ...(conta ? { conta } : {}), ...(tipo === "entrada" ? { fonte: $("lCat").value, cat: FONTES.find(f => f.id === $("lCat").value).nome } : { cat: $("lCat").value }) }];
+    state.meses[ym] = d; saveMes(ym);
+    $("lDesc").value = ""; $("lValor").value = ""; $("lDesc").focus();
+  });
+  $("lancList").addEventListener("click", e => {
+    const b = e.target.closest("[data-dellanc]"); if (!b) return;
+    const d = mesDoc(mes); d.lancamentos = (d.lancamentos || []).filter(l => l.id !== b.dataset.dellanc); state.meses[mes] = d; saveMes(mes);
+  });
+
+  $("ganhos").addEventListener("submit", e => {
+    e.preventDefault();
+    const f = e.target.closest("[data-fonte]"); if (!f) return;
+    const valor = parseNum(f.valor.value); if (!valor) return;
+    const [y, m] = mes.split("-");
+    const dia = mes === hojeYm ? hoje.getDate() : 1;
+    const d = mesDoc(mes);
+    const fonte = FONTES.find(x => x.id === f.dataset.fonte);
+    d.lancamentos = [...d.lancamentos, { id: "l" + Date.now().toString(36), tipo: "entrada", fonte: fonte.id, cat: fonte.nome, ...(fonte.id === "studio" ? { conta: "studio" } : {}), desc: f.desc.value.trim(), valor, data: `${y}-${m}-${String(dia).padStart(2, "0")}` }];
+    state.meses[mes] = d; document.activeElement?.blur(); saveMes(mes);
+  });
+  $("ganhos").addEventListener("click", e => {
+    const b = e.target.closest("[data-dellanc]"); if (!b) return;
+    const d = mesDoc(mes); d.lancamentos = d.lancamentos.filter(l => l.id !== b.dataset.dellanc); state.meses[mes] = d; saveMes(mes);
+  });
+
+
+  // Agendamentos do studio
+  const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  const isoDia = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const hojeIso = isoDia(hoje);
+  let aba = "agendar";
+  try { aba = sessionStorage.getItem("aba") || "agendar"; } catch (e) { aba = "agendar"; }
+  let diaSel = hojeIso;
+  let agEditando = null;
+  let agArmed = null;
+  const durFmt = h => { if (!h) return ""; const m = Math.round(h * 60); const hh = Math.floor(m / 60), mm = m % 60; return (hh ? hh + "h" : "") + (mm ? String(mm).padStart(hh ? 2 : 1, "0") + (hh ? "" : "min") : ""); };
+  const fimHora = a => { if (!a.hora || !a.tempo) return ""; const [h, m] = a.hora.split(":").map(Number); const t = h * 60 + m + Math.round(a.tempo * 60); return String(Math.floor(t / 60) % 24).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
+  const diaLabel = iso => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }); };
+  const TIPOS_AG = { nova: "Nova tattoo", retoque: "Retoque" };
+  const tipoAg = a => a.tipo === "retoque" ? "retoque" : "nova";
+  let aTipo = "nova", ultimoAg = null;
+  const setATipo = t => { aTipo = t; $("aTipo").querySelectorAll("[data-tipo]").forEach(b => b.setAttribute("aria-pressed", b.dataset.tipo === t)); };
+  const agLista = () => Object.values(state.agenda).sort((a, b) => (a.data + (a.hora || "")).localeCompare(b.data + (b.hora || "")));
+  const zap = tel => { let d = String(tel || "").replace(/\D/g, ""); if (!d) return ""; if (d.length <= 11) d = "55" + d; return "https://wa.me/" + d; };
+  const gcal = a => {
+    const ini = a.data.replace(/-/g, "") + "T" + (a.hora || "09:00").replace(":", "") + "00";
+    const fimH = fimHora(a) || a.hora || "10:00";
+    const fim = a.data.replace(/-/g, "") + "T" + fimH.replace(":", "") + "00";
+    const det = [a.desenho && "Desenho: " + a.desenho, a.telefone && "Telefone: " + a.telefone, a.valor && "Valor: " + fmt(a.valor), a.tempo && "Tempo: " + durFmt(a.tempo)].filter(Boolean).join("\n");
+    return "https://calendar.google.com/calendar/render?action=TEMPLATE&ctz=America/Sao_Paulo&text=" + encodeURIComponent((tipoAg(a) === "retoque" ? "Retoque · " : "Tattoo · ") + a.nome) + "&dates=" + ini + "/" + fim + "&details=" + encodeURIComponent(det);
+  };
+
+  function saveAg(a) {
+    state.agenda[a.id] = a;
+    softRender();
+    const { id, ...data } = a;
+    write("agendamentos/" + id, () => db.collection("agendamentos").doc(id).set(data));
+  }
+  function deleteAg(id) {
+    delete state.agenda[id];
+    softRender();
+    write("agendamentos/" + id, () => db.collection("agendamentos").doc(id).delete());
+  }
+
+  function setAba(t) {
+    aba = t;
+    try { sessionStorage.setItem("aba", t); } catch (e) {}
+    $("tabContas").setAttribute("aria-selected", t === "contas");
+    $("tabAgendar").setAttribute("aria-selected", t === "agendar");
+    $("viewAgendar").hidden = t !== "agendar";
+    $("tabAgenda").setAttribute("aria-selected", t === "agenda");
+    $("tabRapido").setAttribute("aria-selected", t === "rapido");
+    $("viewContas").hidden = t !== "contas";
+    $("viewAgenda").hidden = t !== "agenda";
+    $("viewRapido").hidden = t !== "rapido";
+    $("tabSaldos").setAttribute("aria-selected", t === "saldos");
+    $("viewSaldos").hidden = t !== "saldos";
+    $("app").classList.toggle("rapido", t === "rapido");
+  }
+  $("tabContas").onclick = () => setAba("contas");
+  $("tabAgenda").onclick = () => setAba("agenda");
+  $("tabAgendar").onclick = () => setAba("agendar");
+  $("agNovo").onclick = () => { limparAgForm(); setAba("agendar"); $("aNome").focus(); };
+  $("aTipo").addEventListener("click", e => { const b = e.target.closest("[data-tipo]"); if (b) setATipo(b.dataset.tipo); });
+  $("aData").addEventListener("change", renderMarcados);
+  $("tabRapido").onclick = () => setAba("rapido");
+  $("tabSaldos").onclick = () => setAba("saldos");
+
+  function renderAgenda() {
+    const lista = agLista();
+    const doMes = lista.filter(a => a.data.slice(0, 7) === mes);
+    const futuros = lista.filter(a => a.data >= hojeIso && a.status !== "feito");
+    $("agCount").textContent = futuros.length || "";
+    if (diaSel.slice(0, 7) !== mes) diaSel = mes === hojeYm ? hojeIso : mes + "-01";
+
+    // Resumo do mês
+    const previsto = doMes.reduce((s, a) => s + (a.valor || 0), 0);
+    const feito = doMes.filter(a => a.status === "feito").reduce((s, a) => s + (a.valor || 0), 0);
+    const horas = doMes.reduce((s, a) => s + (a.tempo || 0), 0);
+    const prox = futuros.find(a => a.data > hojeIso || !a.hora || a.hora >= String(hoje.getHours()).padStart(2, "0") + ":" + String(hoje.getMinutes()).padStart(2, "0"));
+    $("agTiles").innerHTML = `
+      <div class="tile"><span class="label">Agendamentos no mês</span><span class="v num">${doMes.length}</span>
+        <span class="s">${doMes.filter(a => tipoAg(a) === "nova").length} novas · ${doMes.filter(a => tipoAg(a) === "retoque").length} retoques · ${doMes.filter(a => a.status === "feito").length} concluídos</span></div>
+      <div class="tile"><span class="label">Valor previsto</span><span class="v num">${fmt(previsto)}</span>
+        <span class="s num">Já lançado no caixa ${fmt(feito)}</span></div>
+      <div class="tile"><span class="label">Horas marcadas</span><span class="v num">${durFmt(horas) || "0h"}</span>
+        <span class="s">Soma do tempo de cada sessão</span></div>
+      <div class="tile hero"><span class="label">Próximo atendimento</span><span class="v">${prox ? esc(prox.nome) : "—"}</span>
+        <span class="s">${prox ? esc(diaLabel(prox.data)) + (prox.hora ? " às " + prox.hora : "") : "Nenhum horário marcado"}</span></div>`;
+
+    // Calendário
+    const [y, m] = mes.split("-").map(Number);
+    const primeiro = new Date(y, m - 1, 1);
+    const inicio = new Date(y, m - 1, 1 - primeiro.getDay());
+    const porDia = {};
+    for (const a of lista) (porDia[a.data] = porDia[a.data] || []).push(a);
+    let h = DIAS.map(d => `<div class="wd">${d}</div>`).join("");
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
+      if (i === 35 && d.getMonth() !== m - 1) break;
+      const iso = isoDia(d);
+      const as = porDia[iso] || [];
+      const cls = ["day", d.getMonth() !== m - 1 && "out", iso === hojeIso && "today", iso === diaSel && "sel"].filter(Boolean).join(" ");
+      h += `<button class="${cls}" data-dia="${iso}" aria-label="${esc(diaLabel(iso))}, ${as.length} agendamento${as.length === 1 ? "" : "s"}">
+        <span class="n num">${d.getDate()}</span>
+        ${as.slice(0, 3).map(a => `<span class="chip ${a.status === "feito" ? "feito" : ""} ${tipoAg(a)}">${a.hora ? a.hora + " " : ""}${tipoAg(a) === "retoque" ? "R · " : ""}${esc(a.nome)}</span>`).join("")}
+        ${as.length > 3 ? `<span class="chip more">+${as.length - 3}</span>` : ""}
+        <span class="dots">${as.map(a => `<i class="${tipoAg(a)}"></i>`).join("")}</span></button>`;
+    }
+    $("cal").innerHTML = h;
+
+    // Dia escolhido
+    const t = diaLabel(diaSel);
+    $("agDiaTitulo").textContent = t[0].toUpperCase() + t.slice(1);
+    const doDia = porDia[diaSel] || [];
+    $("agDia").innerHTML = !state.ready ? `<p class="empty">Carregando…</p>` : doDia.length ? doDia.map(a => {
+      const fim = fimHora(a);
+      const z = zap(a.telefone);
+      return `<div class="ag-card ${a.status === "feito" ? "feito" : ""} ${tipoAg(a)}" data-ag="${a.id}">
+        <div class="top"><span class="hora num">${a.hora || "--:--"}${fim ? `<span class="muted" style="font-weight:500;font-size:.85rem"> até ${fim}</span>` : ""}</span>
+          ${a.valor ? `<b class="num">${fmt(a.valor)}</b>` : ""}</div>
+        <span class="nome">${esc(a.nome)}<span class="tipo-pill ${tipoAg(a)}">${TIPOS_AG[tipoAg(a)]}</span>${a.status === "feito" ? ` <span class="pill ok">Concluído</span>` : ""}</span>
+        <div class="det">
+          ${a.desenho ? `<span>Desenho: ${esc(a.desenho)}</span>` : ""}
+          ${a.tempo ? `<span>Tempo: ${durFmt(a.tempo)}</span>` : ""}
+          ${a.telefone ? `<span>Telefone: ${z ? `<a href="${z}" target="_blank" rel="noopener">${esc(a.telefone)} · WhatsApp</a>` : esc(a.telefone)}</span>` : ""}
+        </div>
+        <div class="acts">
+          ${a.status === "feito" ? `<button class="btn" data-agact="desfazer">Desfazer conclusão</button>`
+            : `<button class="btn primary" data-agact="feito" title="Marca como concluído e lança o valor em Ganho do studio">Concluir e lançar no caixa</button>`}
+          <a class="btn" href="${gcal(a)}" target="_blank" rel="noopener">Google Agenda</a>
+          <button class="btn" data-agact="edit">Editar</button>
+          <button class="btn danger ${agArmed === a.id ? "armed" : ""}" data-agact="del">${agArmed === a.id ? "Confirmar" : "Excluir"}</button>
+        </div></div>`;
+    }).join("") : `<p class="empty">Nenhum horário marcado neste dia. Toque em + Agendar para marcar.</p>`;
+
+    // Próximos
+    const px = futuros.slice(0, 6);
+    $("agProx").innerHTML = px.length ? px.map(a => `<button class="prox-row ${tipoAg(a)}" data-ir="${a.data}">
+      <span class="dt num">${a.data.slice(8, 10)}/${a.data.slice(5, 7)}<br>${a.hora || ""}</span>
+      <span class="nm">${esc(a.nome)}<small>${[TIPOS_AG[tipoAg(a)], a.desenho].filter(Boolean).map(esc).join(" · ")}</small></span>
+      <span class="num">${a.valor ? fmt(a.valor) : ""}</span></button>`).join("") : `<p class="empty">Nenhum agendamento daqui pra frente.</p>`;
+
+    if (!agEditando && !$("agForm").contains(document.activeElement) && !$("aData").value) $("aData").value = diaSel;
+    renderMarcados();
+  }
+
+  // Na aba Agendar: o que já está marcado na data escolhida, para não encavalar horário
+  function renderMarcados() {
+    const dia = $("aData").value || diaSel;
+    const t = diaLabel(dia);
+    $("agMarcTitulo").textContent = "Já marcados em " + t;
+    const as = agLista().filter(a => a.data === dia && a.id !== agEditando);
+    $("agMarcados").innerHTML = !state.ready ? `<p class="empty">Carregando…</p>` : as.length ? as.map(a => `<div class="prox-row ${tipoAg(a)}">
+      <span class="dt num">${a.hora || "--:--"}${fimHora(a) ? "<br>até " + fimHora(a) : ""}</span>
+      <span class="nm">${esc(a.nome)}<small>${[TIPOS_AG[tipoAg(a)], a.desenho].filter(Boolean).map(esc).join(" · ")}</small></span>
+      <span class="num">${a.valor ? fmt(a.valor) : ""}</span></div>`).join("") : `<p class="empty">Dia livre. Nenhum horário marcado.</p>`;
+  }
+
+  function limparAgForm() {
+    agEditando = null;
+    $("agForm").reset();
+    setATipo("nova");
+    $("aData").value = diaSel;
+    $("agFormTitulo").textContent = "Novo agendamento";
+    $("aSalvar").textContent = "Agendar";
+    $("aCancelar").hidden = true;
+  }
+
+  $("cal").addEventListener("click", e => {
+    const b = e.target.closest("[data-dia]"); if (!b) return;
+    diaSel = b.dataset.dia;
+    if (diaSel.slice(0, 7) !== mes) { setMes(diaSel.slice(0, 7)); diaSel = b.dataset.dia; }
+    agArmed = null; render();
+  });
+  $("agProx").addEventListener("click", e => {
+    const b = e.target.closest("[data-ir]"); if (!b) return;
+    const d = b.dataset.ir;
+    if (d.slice(0, 7) !== mes) setMes(d.slice(0, 7));
+    diaSel = d; render();
+    $("agDia").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  $("aCancelar").onclick = () => { const editou = !!agEditando; limparAgForm(); if (editou) setAba("agenda"); };
+  $("agForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const nome = $("aNome").value.trim(); const data = $("aData").value;
+    if (!nome || !data) return;
+    const antigo = agEditando ? state.agenda[agEditando] : null;
+    const a = { ...(antigo || {}), id: agEditando || "a" + Date.now().toString(36), nome, telefone: $("aTel").value.trim(), desenho: $("aDesenho").value.trim(),
+      valor: parseNum($("aValor").value), tempo: parseNum($("aTempo").value), data, hora: $("aHora").value, tipo: aTipo, status: antigo?.status || "marcado" };
+    diaSel = data;
+    if (data.slice(0, 7) !== mes) { mes = data.slice(0, 7); try { sessionStorage.setItem("mes", mes); } catch (e) {} resetData(); }
+    const editou = !!agEditando;
+    limparAgForm(); $("aData").value = data; saveAg(a);
+    document.activeElement?.blur();
+    if (editou) setAba("agenda");
+    else { ultimo = null; ultimoAg = a.id; mostrarToast(`${TIPOS_AG[a.tipo]} agendado: ${a.nome}, ${data.slice(8, 10)}/${data.slice(5, 7)}${a.hora ? " às " + a.hora : ""}`); }
+  });
+  $("agDia").addEventListener("click", e => {
+    const b = e.target.closest("[data-agact]"); if (!b) return;
+    const a = state.agenda[b.closest("[data-ag]").dataset.ag]; if (!a) return;
+    const act = b.dataset.agact;
+    if (act === "edit") {
+      agEditando = a.id; agArmed = null;
+      $("aNome").value = a.nome || ""; $("aTel").value = a.telefone || ""; $("aDesenho").value = a.desenho || "";
+      $("aValor").value = a.valor ? numStr(a.valor) : ""; $("aTempo").value = a.tempo ? String(a.tempo).replace(".", ",") : "";
+      $("aData").value = a.data; $("aHora").value = a.hora || ""; setATipo(tipoAg(a));
+      $("agFormTitulo").textContent = "Editar agendamento"; $("aSalvar").textContent = "Salvar"; $("aCancelar").hidden = false;
+      setAba("agendar"); renderMarcados(); $("aNome").focus();
+    }
+    if (act === "del") {
+      if (agArmed !== a.id) { agArmed = a.id; renderAgenda(); return; }
+      agArmed = null;
+      if (a.lancId) removerLanc(a);
+      deleteAg(a.id);
+    }
+    if (act === "feito") {
+      const ym = a.data.slice(0, 7); const d = mesDoc(ym);
+      const lancId = "l" + Date.now().toString(36);
+      if (a.valor) {
+        d.lancamentos = [...d.lancamentos, { id: lancId, tipo: "entrada", fonte: "studio", conta: "studio", cat: "Ganho do studio", desc: (tipoAg(a) === "retoque" ? "Retoque · " : "Tattoo · ") + a.nome, valor: a.valor, data: a.data }];
+        state.meses[ym] = d; saveMes(ym);
+      }
+      saveAg({ ...a, status: "feito", lancId: a.valor ? lancId : null });
+    }
+    if (act === "desfazer") {
+      if (a.lancId) removerLanc(a);
+      saveAg({ ...a, status: "marcado", lancId: null });
+    }
+  });
+  function removerLanc(a) {
+    const ym = a.data.slice(0, 7); const d = mesDoc(ym);
+    d.lancamentos = d.lancamentos.filter(l => l.id !== a.lancId); state.meses[ym] = d; saveMes(ym);
+  }
+  // Gasto rápido: centavos digitados no teclado; tocar na categoria grava a saída
+  const RAP_CATS = [
+    ["Mercado", "studio"], ["Alimentação", "trabalho"], ["Combustível", "cartao"], ["Compras", "capital"], ["Saúde", "bad"],
+    ["Escola e crianças", "mesa"], ["Lazer", "good"], ["Casa", "casa"], ["Trabalho", "warn"], ["Outros", "outros"],
+  ];
+  const FORMAS = ["Pix/débito", "Dinheiro", "Crédito"];
+  let centavos = 0, rDia = "hoje", rForma = FORMAS[0], ultimo = null, toastTimer = null;
+  try { const f = localStorage.getItem("familia-forma"); if (FORMAS.includes(f)) rForma = f; } catch (e) {}
+  const ontemIso = () => { const d = new Date(hoje); d.setDate(d.getDate() - 1); return isoDia(d); };
+
+  $("rCats").innerHTML = RAP_CATS.map(([c, cor]) => `<button type="button" data-cat="${c}" style="--cc:var(--${cor})">${c}</button>`).join("");
+  $("rForma").insertAdjacentHTML("beforeend", FORMAS.map(f => `<button type="button" data-forma="${f}">${f}</button>`).join(""));
+
+  function renderRapido() {
+    const zero = centavos === 0;
+    $("rValor").textContent = fmt(centavos / 100);
+    $("rValor").classList.toggle("zero", zero);
+    $("rCats").querySelectorAll("button").forEach(b => { b.disabled = zero; });
+    $("rHint").textContent = zero ? "Digite o valor e toque na categoria para salvar." : "Agora toque na categoria. O gasto é salvo na hora.";
+    $("rForma").querySelectorAll("[data-forma]").forEach(b => b.setAttribute("aria-pressed", b.dataset.forma === rForma));
+    $("rDia").querySelectorAll("[data-dia]").forEach(b => b.setAttribute("aria-pressed", b.dataset.dia === rDia));
+    $("rQuem").querySelectorAll("[data-quem]").forEach(b => b.setAttribute("aria-pressed", b.dataset.quem === pagador));
+    const saidasMes = (mesDoc(hojeYm).lancamentos || []).filter(l => l.tipo === "saida");
+    const deHoje = saidasMes.filter(l => l.data === hojeIso).reverse();
+    const totHoje = deHoje.reduce((s, l) => s + l.valor, 0);
+    $("rTotais").textContent = `Hoje ${fmt(totHoje)} · no mês ${fmt(saidasMes.reduce((s, l) => s + l.valor, 0))}`;
+    $("rLista").innerHTML = !state.ready ? `<p class="empty">Carregando…</p>` : deHoje.length ? deHoje.map(l => `<div class="lanc-row">
+      <span class="d num">${l.data.slice(8, 10)}/${l.data.slice(5, 7)}</span>
+      <span>${esc(l.desc || l.cat)}<span class="c">${esc(l.cat)}${l.conta ? " · " + esc(nomeConta(l.conta)) : ""}${l.forma ? " · " + esc(l.forma) : ""}</span></span>
+      <span class="val num out">− ${fmt(l.valor)}</span>
+      <button class="icon" data-rdel="${l.id}" aria-label="Apagar gasto">×</button></div>`).join("")
+      : `<p class="empty">Nenhum gasto registrado hoje. O primeiro aparece aqui assim que você tocar numa categoria.</p>`;
+  }
+
+  function tecla(k) {
+    if (k === "del") centavos = Math.floor(centavos / 10);
+    else { const n = centavos * (k === "00" ? 100 : 10) + (k === "00" ? 0 : Number(k)); if (n <= 9999999) centavos = n; }
+    renderRapido();
+  }
+  $("rKeypad").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) tecla(b.dataset.k); });
+  document.addEventListener("keydown", e => {
+    if (aba !== "rapido" || e.target.matches("input, textarea, select") || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (/^[0-9]$/.test(e.key)) { tecla(e.key); e.preventDefault(); }
+    if (e.key === "Backspace") { tecla("del"); e.preventDefault(); }
+  });
+  $("rForma").addEventListener("click", e => {
+    const b = e.target.closest("[data-forma]"); if (!b) return;
+    rForma = b.dataset.forma; try { localStorage.setItem("familia-forma", rForma); } catch (er) {}
+    renderRapido();
+  });
+  $("rDia").addEventListener("click", e => { const b = e.target.closest("[data-dia]"); if (b) { rDia = b.dataset.dia; renderRapido(); } });
+  $("rQuem").insertAdjacentHTML("beforeend", PAGADORES.map(c => `<button type="button" data-quem="${c.id}">${c.nome}</button>`).join(""));
+  $("rQuem").addEventListener("click", e => { const b = e.target.closest("[data-quem]"); if (b) { setPagador(b.dataset.quem); render(); } });
+  $("rCats").addEventListener("click", e => {
+    const b = e.target.closest("[data-cat]"); if (!b || !centavos) return;
+    const data = rDia === "ontem" ? ontemIso() : hojeIso;
+    const ym = data.slice(0, 7);
+    const l = { id: "l" + Date.now().toString(36), tipo: "saida", desc: $("rDesc").value.trim(), valor: centavos / 100, data, cat: b.dataset.cat, forma: rForma, ...(pagador ? { conta: pagador } : {}) };
+    const d = mesDoc(ym); d.lancamentos = [...d.lancamentos, l]; state.meses[ym] = d;
+    ultimo = { ym, id: l.id }; ultimoAg = null;
+    centavos = 0; rDia = "hoje"; $("rDesc").value = ""; $("rDesc").blur();
+    saveMes(ym);
+    mostrarToast(`${l.desc || l.cat} · ${fmt(l.valor)} salvo` + (l.conta && state.saldos.contas?.[l.conta] ? ` · saldo ${nomeConta(l.conta)} ${fmt(calcSaldos()[l.conta].saldo)}` : ""));
+  });
+  function apagarLanc(ym, id) {
+    const d = mesDoc(ym); d.lancamentos = d.lancamentos.filter(x => x.id !== id); state.meses[ym] = d; saveMes(ym);
+  }
+  $("rLista").addEventListener("click", e => { const b = e.target.closest("[data-rdel]"); if (b) apagarLanc(hojeYm, b.dataset.rdel); });
+  function mostrarToast(t) {
+    $("toastMsg").textContent = t; $("toast").hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { $("toast").hidden = true; ultimo = null; ultimoAg = null; }, 6000);
+  }
+  $("toastUndo").onclick = () => {
+    if (ultimo) apagarLanc(ultimo.ym, ultimo.id);
+    if (ultimoAg) deleteAg(ultimoAg);
+    ultimo = null; ultimoAg = null; clearTimeout(toastTimer); $("toast").hidden = true;
+  };
+
+  // Saldos: valor conferido no banco + tudo o que entrou ou saiu da conta depois disso
+  let corrigindo = null;
+  function calcSaldos() {
+    const base = state.saldos.contas || {};
+    const r = {};
+    for (const c of CONTAS_B) r[c.id] = { saldo: base[c.id]?.saldo || 0, em: base[c.id]?.em || 0, definido: !!base[c.id] };
+    const mexe = (conta, v, t) => { const x = r[conta]; if (x && t > x.em) x.saldo += v; };
+    for (const [ym, m] of Object.entries(state.meses)) {
+      for (const l of m.lancamentos || []) {
+        const t = tsDe(l.id);
+        if (l.tipo === "saida" && l.conta) mexe(l.conta, -l.valor, t);
+        if (l.tipo === "entrada" && l.conta) mexe(l.conta, l.valor, t);
+        if (l.tipo === "transf") { mexe(l.de, -l.valor, t); mexe(l.para, l.valor, t); }
+      }
+      for (const [cid, p] of Object.entries(m.pagos || {})) {
+        const c = state.contas[cid];
+        if (c && contaPaga(p)) mexe(p.conta, -valorNo(c, ym), p.em);
+      }
+    }
+    return r;
+  }
+  function movimentos() {
+    const out = [];
+    for (const [ym, m] of Object.entries(state.meses)) {
+      for (const l of m.lancamentos || []) {
+        if (l.tipo === "transf") out.push({ ym, id: l.id, t: tsDe(l.id), data: l.data, txt: `${nomeConta(l.de)} → ${nomeConta(l.para)}`,
+          sub: l.para === "porquinho" ? "Guardado no porquinho" : l.de === "porquinho" ? "Retirado do porquinho" : "Transferência entre contas", v: l.valor, cls: "" });
+        else if (l.conta && (l.tipo === "saida" || l.tipo === "entrada")) out.push({ ym, id: l.id, t: tsDe(l.id), data: l.data, txt: l.desc || l.cat,
+          sub: `${l.cat} · ${nomeConta(l.conta)}`, v: l.tipo === "entrada" ? l.valor : -l.valor, cls: l.tipo === "entrada" ? "in" : "out" });
+      }
+      for (const [cid, p] of Object.entries(m.pagos || {})) {
+        const c = state.contas[cid];
+        if (c && contaPaga(p)) out.push({ ym, t: p.em, data: isoDia(new Date(p.em)), txt: c.nome + " paga", sub: `Conta fixa · ${nomeConta(p.conta)}`, v: -valorNo(c, ym), cls: "out" });
+      }
+    }
+    return out.sort((a, b) => b.t - a.t);
+  }
+  function saveSaldos() {
+    softRender();
+    write("config/saldos", () => db.doc("config/saldos").set(state.saldos));
+  }
+  function addTransf(de, para, valor) {
+    const d = mesDoc(hojeYm);
+    const id = "l" + Date.now().toString(36);
+    d.lancamentos = [...d.lancamentos, { id, tipo: "transf", de, para, valor, data: hojeIso, desc: "", cat: "Transferência" }];
+    state.meses[hojeYm] = d; saveMes(hojeYm);
+    ultimo = { ym: hojeYm, id }; ultimoAg = null;
+  }
+  const ddmm = iso => iso.slice(8, 10) + "/" + iso.slice(5, 7);
+
+  function renderSaldos() {
+    if (document.activeElement !== $("pagCom")) $("pagCom").value = pagador;
+    const s = calcSaldos();
+    const meta = state.saldos.meta || {};
+    $("saldoTotal").textContent = `Nas contas ${fmt(PAGADORES.reduce((t, c) => t + s[c.id].saldo, 0))} · no porquinho ${fmt(s.porquinho.saldo)}`;
+    if (!$("saldoCards").contains(document.activeElement)) $("saldoCards").innerHTML = CONTAS_B.map(c => {
+      const x = s[c.id];
+      const porq = c.id === "porquinho";
+      let extra = "";
+      if (porq) {
+        const alvo = meta.valor || 0;
+        const pct = alvo ? Math.max(0, Math.min(100, Math.round(x.saldo / alvo * 100))) : 0;
+        const dias = meta.data ? Math.round((new Date(meta.data + "T00:00") - new Date(hojeIso + "T00:00")) / 864e5) : null;
+        const falta = Math.max(0, alvo - x.saldo);
+        extra = (alvo ? `<div class="bar" aria-label="${pct}% da meta"><i style="width:${pct}%"></i></div>
+          <span class="s num">${falta ? `Faltam ${fmt(falta)} para a meta de ${fmt(alvo)}` : `Meta de ${fmt(alvo)} atingida`}${meta.data ? ` até ${ddmm(meta.data)}` : ""}${falta && dias > 0 ? `. São ${dias} ${dias === 1 ? "dia" : "dias"}: uns ${fmt(falta / dias)} por dia.` : ""}</span>`
+          : `<span class="s">Defina quanto juntar e o dia do pagamento.</span>`) + `
+          <form class="porq-meta" id="porqGuardar" autocomplete="off">
+            <label>Guardar (R$)<input name="v" inputmode="decimal" placeholder="100,00"></label>
+            <label>Sai da conta<select name="de">${PAGADORES.map(p => `<option value="${p.id}" ${p.id === pagador ? "selected" : ""}>${p.nome}</option>`).join("")}</select></label>
+            <button class="btn primary" type="submit">Guardar</button></form>
+          <form class="porq-meta" id="porqMeta" autocomplete="off">
+            <label>Meta (R$)<input name="valor" inputmode="decimal" value="${alvo ? numStr(alvo) : ""}" placeholder="0,00"></label>
+            <label>Dia do pagamento<input name="data" type="date" value="${meta.data || ""}"></label>
+            <button class="btn" type="submit">Salvar meta</button></form>`;
+      }
+      const conf = x.definido ? `Conferido em ${new Date(x.em).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}, mais o que entrou e saiu depois`
+        : porq ? "Começa em R$ 0,00. Se já tem dinheiro guardado, corrija o saldo." : "Informe o saldo que aparece no banco em Corrigir saldo.";
+      return `<div class="saldo ${porq ? "porq" : ""}" style="--sc:var(--${c.cor})">
+        <span class="label">${porq ? "Porquinho" : "Conta " + c.nome}</span>
+        <span class="v num ${x.saldo < 0 ? "neg" : ""}">${fmt(x.saldo)}</span>
+        <span class="s">${conf}</span>
+        ${extra}
+        ${corrigindo === c.id ? `<form class="saldo-edit" data-corrigir="${c.id}" autocomplete="off">
+          <input name="v" inputmode="decimal" placeholder="Saldo de hoje" aria-label="Saldo atual de ${c.nome}" value="${numStr(x.saldo)}">
+          <button class="btn primary" type="submit">Salvar</button></form>` : `<button class="linkbtn" data-corr="${c.id}">Corrigir saldo</button>`}</div>`;
+    }).join("");
+
+    const mv = movimentos().slice(0, 25);
+    $("movList").innerHTML = !state.ready ? `<p class="empty">Carregando…</p>` : mv.length ? mv.map(m => `<div class="lanc-row">
+      <span class="d num">${ddmm(m.data)}</span>
+      <span>${esc(m.txt)}<span class="c">${esc(m.sub)}</span></span>
+      <span class="val num ${m.cls}">${m.cls === "in" ? "+ " : m.cls === "out" ? "− " : ""}${fmt(Math.abs(m.v))}</span>
+      ${m.id ? `<button class="icon" data-mdel="${m.ym}|${m.id}" aria-label="Apagar movimentação">×</button>` : "<span></span>"}</div>`).join("")
+      : `<p class="empty">Nada ainda. Gastos com quem pagou, ganhos do studio, contas pagas e dinheiro guardado no porquinho aparecem aqui.</p>`;
+
+    const d = mesDoc(mes); const tot = {}; let sem = 0;
+    for (const l of d.lancamentos) if (l.tipo === "saida") { if (l.conta) tot[l.conta] = (tot[l.conta] || 0) + l.valor; else sem += l.valor; }
+    for (const c of contasLista()) {
+      const p = d.pagos?.[c.id]; if (!p || !ativaNo(c, mes)) continue;
+      const q = contaPaga(p); const v = valorNo(c, mes);
+      if (q) tot[q] = (tot[q] || 0) + v; else sem += v;
+    }
+    $("pagTitulo").textContent = "Quem pagou em " + ymLabel(mes);
+    $("porPagante").innerHTML = PAGADORES.map(c => `<div class="pag-row" style="--sc:var(--${c.cor})"><span><span class="dot"></span>${c.nome}</span><b class="num">${fmt(tot[c.id] || 0)}</b></div>`).join("")
+      + (sem ? `<div class="pag-row" style="--sc:var(--outros)"><span><span class="dot"></span>Sem pagante informado</span><b class="num">${fmt(sem)}</b></div>` : "");
+  }
+
+  const opcoes = (lista, vazio) => (vazio ? `<option value="">${vazio}</option>` : "") + lista.map(c => `<option value="${c.id}">${c.nome}</option>`).join("");
+  $("pagCom").innerHTML = opcoes(PAGADORES, "Não informar");
+  $("lConta").innerHTML = opcoes(PAGADORES, "Nenhuma");
+  $("lConta").value = pagador;
+  $("mDe").innerHTML = opcoes(CONTAS_B);
+  $("mPara").innerHTML = opcoes(CONTAS_B);
+  $("mDe").value = pagador || "lineti"; $("mPara").value = "porquinho";
+  $("pagCom").addEventListener("change", e => { setPagador(e.target.value); e.target.blur(); render(); });
+
+  $("saldoCards").addEventListener("click", e => {
+    const b = e.target.closest("[data-corr]"); if (!b) return;
+    corrigindo = b.dataset.corr; renderSaldos();
+    $("saldoCards").querySelector("[data-corrigir] input")?.select();
+  });
+  $("saldoCards").addEventListener("submit", e => {
+    e.preventDefault();
+    const f = e.target;
+    if (f.dataset.corrigir) {
+      state.saldos = { ...state.saldos, contas: { ...(state.saldos.contas || {}), [f.dataset.corrigir]: { saldo: parseNum(f.v.value), em: Date.now() } } };
+      corrigindo = null; document.activeElement?.blur(); saveSaldos();
+    } else if (f.id === "porqGuardar") {
+      const v = parseNum(f.v.value); if (!v) return;
+      setPagador(f.de.value); document.activeElement?.blur();
+      addTransf(f.de.value, "porquinho", v);
+      mostrarToast(`${fmt(v)} guardado no porquinho`);
+    } else if (f.id === "porqMeta") {
+      state.saldos = { ...state.saldos, meta: { valor: parseNum(f.valor.value), data: f.data.value || null } };
+      document.activeElement?.blur(); saveSaldos();
+    }
+  });
+  $("movForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const de = $("mDe").value, para = $("mPara").value, v = parseNum($("mValor").value);
+    if (!v) return;
+    if (de === para) { showNotice("Escolha contas diferentes em De e Para."); return; }
+    showNotice(""); $("mValor").value = ""; document.activeElement?.blur();
+    addTransf(de, para, v);
+    mostrarToast(`${fmt(v)} movido de ${nomeConta(de)} para ${nomeConta(para)}`);
+  });
+  $("movList").addEventListener("click", e => {
+    const b = e.target.closest("[data-mdel]"); if (!b) return;
+    const [ym, id] = b.dataset.mdel.split("|"); apagarLanc(ym, id);
+  });
+
+  // Link com #gasto abre direto no registro rápido (atalho na tela inicial do celular)
+  // #agendar abre direto a aba de novo agendamento
+  if (location.hash === "#gasto") aba = "rapido";
+  if (location.hash === "#agendar") aba = "agendar";
+  window.addEventListener("hashchange", () => { if (location.hash === "#gasto") setAba("rapido"); if (location.hash === "#agendar") setAba("agendar"); });
+  setAba(aba);
+
+  setTipo("saida"); resetData(); render();
+
+  // Dados: um registro por caminho ("contas/<id>", "meses/<AAAA-MM>", "agendamentos/<id>", "config/saldos"…).
+  // Ficam neste navegador e, com login do Google, no documento casas/familia do Firebase (script no fim da página).
+  const LS = "contas-familia-v1";
+  let recs = {};
+  try { recs = JSON.parse(localStorage.getItem(LS) || "null") || {}; } catch (e) { recs = {}; }
+  const ouvintes = [];
+  const avisar = () => ouvintes.forEach(f => f());
+  function salvarLocal() { try { localStorage.setItem(LS, JSON.stringify(recs)); } catch (e) { showNotice("Não deu para salvar neste navegador (memória cheia ou modo anônimo)."); } }
+  function put(path, val) {
+    if (val == null) delete recs[path]; else recs[path] = JSON.parse(JSON.stringify(val));
+    salvarLocal(); avisar();
+    window.__nuvem?.put(path, recs[path] ?? null);
+  }
+  const docRef = path => ({
+    set: async v => put(path, v),
+    delete: async () => put(path, null),
+    onSnapshot(cb) { const f = () => cb({ exists: path in recs, data: () => recs[path] }); ouvintes.push(f); f(); },
+  });
+  db = {
+    doc: docRef,
+    collection: nome => ({
+      doc: id => docRef(nome + "/" + id),
+      onSnapshot(cb) {
+        const f = () => cb({ docs: Object.keys(recs).filter(k => k.startsWith(nome + "/")).map(k => ({ id: k.slice(nome.length + 1), data: () => recs[k] })) });
+        ouvintes.push(f); f();
+      },
+    }),
+  };
+
+  // Backup
+  document.addEventListener("click", e => { const b = e.target.closest("[data-close]"); if (b) b.closest("dialog").close(); });
+  $("b-ajustes").onclick = () => $("dlg-ajustes").showModal();
+  $("b-exportar").onclick = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: "contas-familia", em: new Date().toISOString(), recs }, null, 1)], { type: "application/json" }));
+    a.download = "backup-contas-em-dia-" + hojeIso + ".json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  $("f-importar").onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    f.text().then(t => {
+      const x = JSON.parse(t); if (!x || x.app !== "contas-familia" || !x.recs) throw 0;
+      for (const k of Object.keys(recs)) if (!(k in x.recs)) put(k, null);
+      for (const [k, v] of Object.entries(x.recs)) put(k, v);
+      $("dlg-ajustes").close(); mostrarToast("Backup restaurado");
+    }).catch(() => showNotice("Esse arquivo não é um backup deste site."));
+    e.target.value = "";
+  };
+
+  // Ponte com a sincronização (script abaixo)
+  window.__app = {
+    recs: () => recs,
+    apply(x) { recs = { ...x }; salvarLocal(); avisar(); },
+  };
+
+  {
+    let got = 0; const done = () => { if (++got >= 5 && !state.ready) { state.ready = true; render(); } };
+    const err = () => showNotice("A conexão com os dados caiu. Recarregue a página.");
+    db.collection("contas").onSnapshot(snap => {
+      const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; });
+      state.contas = m; done(); if (state.ready) softRender();
+    }, err);
+    db.collection("meses").onSnapshot(snap => {
+      const m = {}; snap.docs.forEach(d => { m[d.id] = d.data(); });
+      state.meses = m; done(); if (state.ready) softRender();
+    }, err);
+    db.collection("agendamentos").onSnapshot(snap => {
+      const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; });
+      state.agenda = m; done(); if (state.ready) softRender();
+    }, err);
+    db.doc("config/geral").onSnapshot(snap => {
+      state.rendas = snap.exists ? (snap.data().rendas || []) : []; done(); if (state.ready) softRender();
+    }, err);
+    db.doc("config/saldos").onSnapshot(snap => {
+      state.saldos = snap.exists ? snap.data() : {}; done(); if (state.ready) softRender();
+    }, err);
+  }
+})();
+</script>
+<script type="module">
+// Sincronização pelo Firebase (login com Google), no mesmo projeto do Studio.caixa.
+// Os dados ficam num único documento: casas/familia, um campo por registro. O Studio.caixa lê o mesmo documento.
+const FIREBASE_CONFIG = { apiKey: "AIzaSyC7J-DPwJxHqMlGccX0O_XRDfTDD9M2XI8", authDomain: "financas-lineti.firebaseapp.com", projectId: "financas-lineti", storageBucket: "financas-lineti.firebasestorage.app", messagingSenderId: "714622177070", appId: "1:714622177070:web:d6b5ec841504241632f4bf" };
+const CASA = "familia";
+const V = "10.12.2", G = `https://www.gstatic.com/firebasejs/${V}/`;
+const A = window.__app, $ = id => document.getElementById(id);
+const btn = $("b-cloud"), dlg = $("dlg-cloud"), body = $("dcl-b");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+btn.hidden = false;
+try { await start(); } catch (e) { console.error(e); ui(null, "Não consegui conectar à nuvem"); }
+async function start() {
+  const [{ initializeApp }, au, fs] = await Promise.all([import(G + "firebase-app.js"), import(G + "firebase-auth.js"), import(G + "firebase-firestore.js")]);
+  const app = initializeApp(FIREBASE_CONFIG), auth = au.getAuth(app);
+  let db; try { db = fs.initializeFirestore(app, { localCache: fs.persistentLocalCache() }); } catch (e) { db = fs.getFirestore(app); }
+  const ref = fs.doc(db, "casas", CASA);
+  let user = null, unsub = null;
+  window.__nuvem = null;
+  const falha = e => { console.error(e); ui(user, e?.code === "permission-denied" ? "Este e-mail não tem acesso" : "Erro ao salvar na nuvem"); };
+  const put = (path, val) => fs.updateDoc(ref, new fs.FieldPath(path), val === null ? fs.deleteField() : val).catch(falha);
+  au.onAuthStateChanged(auth, u => {
+    if (unsub) { unsub(); unsub = null; }
+    user = u; window.__nuvem = null;
+    if (!u) { ui(null); return; }
+    ui(u, "Conectando…");
+    let pronto = false;
+    unsub = fs.onSnapshot(ref, async snap => {
+      const cloud = snap.exists() ? snap.data() : {};
+      if (!pronto) {
+        pronto = true;
+        // Nuvem vazia: sobe o que já estava neste aparelho. Senão, a nuvem vale.
+        if (!Object.keys(cloud).length) {
+          try { await fs.setDoc(ref, A.recs()); } catch (e) { falha(e); return; }
+        } else A.apply(cloud);
+        window.__nuvem = { put };
+        ui(u);
+        return;
+      }
+      A.apply(cloud);
+    }, falha);
+  });
+  btn.onclick = () => {
+    if (user) { dlg.showModal(); return; }
+    const p = new au.GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" });
+    au.signInWithPopup(auth, p).catch(e => {
+      if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") return au.signInWithRedirect(auth, p);
+      if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") { console.error(e); ui(null, e.code === "auth/unauthorized-domain" ? "Domínio não autorizado no Firebase" : "Não consegui entrar"); }
+    });
+  };
+  au.getRedirectResult(auth).catch(() => {});
+  body.addEventListener("click", e => { if (e.target.id === "b-sair") { au.signOut(auth); dlg.close(); } });
+}
+function ui(u, msg) {
+  btn.classList.toggle("on", !!u && !msg); btn.classList.toggle("err", !!msg && msg !== "Conectando…");
+  btn.textContent = u ? (msg || "Sincronizado") : (msg || "Entrar com Google");
+  btn.title = u ? u.email || "" : "Entre para ver os mesmos dados no celular e no computador";
+  body.innerHTML = u ? `<p>Conectada como <b>${esc(u.email || "")}</b>.</p><p>Tudo o que vocês registrarem aqui aparece nos outros aparelhos e no Studio.caixa.</p><button type="button" class="btn" id="b-sair">Sair desta conta</button><p class="muted">Ao sair, os dados continuam neste aparelho, mas param de sincronizar.</p>` : "";
+}
+</script>
+</body>
+</html>

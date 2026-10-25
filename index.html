@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Studio ganhos e gastos</title>
+<title>Studio.caixa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
@@ -194,6 +194,17 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
   .kpi .v{font-size:17px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Mostrador: valores do dia só para leitura */
+.dv{display:flex;align-items:center;gap:4px;font-family:var(--f-num);font-size:12.5px;min-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv b{flex:0 0 14px;font-size:12px;text-align:center}
+.dv.gn{color:var(--gain)} .dv.gs{color:var(--loss)} .dv.zero{color:var(--dim)}
+a.btn{text-decoration:none}
+.gate{background:var(--panel);border:1px solid var(--accent-edge);border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.gate[hidden]{display:none}
+.gate p{margin:0;color:var(--muted)}
+.gate b{color:var(--fg)}
+@media (max-width:760px){.dv{font-size:13px}}
 </style>
 </head>
 <body>
@@ -201,12 +212,12 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1><span id="bname">Studio</span><b>.caixa</b></h1>
-      <p>Ganhos, gastos e contas fixas do mês</p>
+      <h1><span>Studio</span><b>.caixa</b></h1>
+      <p>Ganhos, gastos e contas fixas do mês · dados do Contas em dia</p>
     </div>
     <div class="hdr-r">
       <button type="button" class="cloud" id="b-cloud" hidden><i></i><span>Entrar com Google</span></button>
-      <button type="button" class="btn pri" id="b-fixos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Calendário gastos fixos</button>
+      <a class="btn pri" id="b-editar" href="./contas/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Editar no Contas em dia</a>
       <div class="monthnav">
         <button id="prev" aria-label="Mês anterior">‹</button>
         <div class="label" id="mlabel">—</div>
@@ -215,10 +226,12 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
     </div>
   </header>
 
+  <div class="gate" id="gate" hidden><p><b>Entre com o Google</b> (a mesma conta do Contas em dia) para ver os números da família.</p><button type="button" class="btn pri" id="b-gate">Entrar com Google</button></div>
+
   <div class="kpis" id="kpis"></div>
 
   <section class="card">
-    <h2><span id="caltitle">Diário</span><small>Digite o ganho e o gasto de cada dia · toque em FIXO para ver a conta do dia</small></h2>
+    <h2><span id="caltitle">Diário</span><small>Ganhos e gastos lançados em cada dia · toque em FIXO para ver as contas do dia</small></h2>
     <div class="cal" id="cal"></div>
     <div class="legend">
       <span><i style="background:var(--gain-tint);border:1px solid var(--gain-edge)"></i>Dia positivo</span>
@@ -233,7 +246,7 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
     <section class="card">
       <h2><span id="ytitle">Ano</span><small>Clique num mês para abrir</small></h2>
       <div class="tbl"><table>
-        <thead><tr><th>Mês</th><th>Início</th><th>Ganhos</th><th>Gastos</th><th>Fixos pagos</th><th>Resultado</th><th>Saldo final</th></tr></thead>
+        <thead><tr><th>Mês</th><th>Ganhos</th><th>Gastos</th><th>Fixos pagos</th><th>Resultado</th></tr></thead>
         <tbody id="tbody"></tbody>
         <tfoot id="tfoot"></tfoot>
       </table></div>
@@ -242,38 +255,16 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
       <h2><span id="ftitle">Contas fixas do mês</span><small id="fsub"></small></h2>
       <div class="flist" id="flist"></div>
       <div class="params">
-        <div class="row">
-          <label>Nome do studio<input id="p-nome" type="text" maxlength="40" placeholder="Ex.: Studio Lineti"></label>
-          <label><span>&nbsp;</span><button type="button" class="btn" id="b-fixos2">Editar contas fixas</button></label>
-        </div>
-        <div class="row">
-          <button type="button" class="btn" id="b-exp">Baixar backup</button>
-          <label class="btn" for="b-imp">Restaurar backup<input id="b-imp" type="file" accept="application/json" hidden></label>
-        </div>
-        <p class="note">Comece pelo quadro "Valor atual": digite quanto o studio tem em caixa hoje. O resto é calculado a partir dele.</p>
-        <p class="note">Ganho e gasto aceitam somas: digite 150+80 e o dia guarda 230. Em branco ou 0 apaga.</p>
-        <p class="note">As contas fixas se repetem todo mês no mesmo dia. Ao marcar "Pago", o valor sai do caixa. Não digite a conta fixa de novo no Gasto do dia, senão conta duas vezes.</p>
-        <p class="note">Clique em "Entrar com Google" no topo para ter o mesmo histórico no celular e no computador. Sem entrar, os dados ficam salvos só neste navegador.</p>
-        <p class="note"> Baixe um backup de vez em quando para não perder nada e para levar para outro aparelho.</p>
+        <p class="note">Esta página só mostra. Para lançar ganhos e gastos, marcar contas pagas ou cadastrar contas fixas, use o <a class="lnk" href="./contas/">Contas em dia</a>. O que mudar lá aparece aqui na hora.</p>
+        <p class="note">Gastos do mês são os lançados no Gasto rápido e em Entradas e saídas. As contas fixas aparecem à parte e entram no resultado quando marcadas como pagas.</p>
       </div>
     </section>
   </div>
 </div>
 
-<dialog id="dlg-fixos" aria-labelledby="dfx-t">
-  <div class="dlg">
-    <div class="dlg-h"><div><h3 id="dfx-t">Calendário de gastos fixos</h3><p>Toque num dia para colocar o nome e o valor da conta. Vale para todos os meses.</p></div><button type="button" class="dlg-x" data-close aria-label="Fechar">×</button></div>
-    <div class="dlg-b">
-      <div class="ftot" id="dfx-tot"></div>
-      <div class="fcal" id="dfx-cal"></div>
-      <div class="fed" id="dfx-ed"></div>
-    </div>
-  </div>
-</dialog>
-
 <dialog id="dlg-cloud" class="sm" aria-labelledby="dcl-t">
   <div class="dlg">
-    <div class="dlg-h"><div><h3 id="dcl-t">Sincronização</h3><p>Celular e computador com o mesmo histórico</p></div><button type="button" class="dlg-x" data-close aria-label="Fechar">×</button></div>
+    <div class="dlg-h"><div><h3 id="dcl-t">Sincronização</h3><p>Mesmos dados do Contas em dia</p></div><button type="button" class="dlg-x" data-close aria-label="Fechar">×</button></div>
     <div class="dlg-b cl-b" id="dcl-b"></div>
   </div>
 </dialog>
@@ -287,13 +278,12 @@ dialog::backdrop{background:rgba(5,8,14,.72);backdrop-filter:blur(3px)}
 
 <script>
 (function(){
-const LS="studio-v1";
+// Mostrador: lê os registros do Contas em dia (documento casas/familia) e não grava nada.
+// recs: "contas/<id>" {nome,valor,grupo,dia,parcelaAtual,parcelaTotal,refMes} · "meses/AAAA-MM" {pagos,valores,lancamentos} · "config/saldos"
+const LS="studio-familia-cache";
 const INI={y:2026,m:0}, FIM={y:2030,m:11};
-const SUG=["Aluguel studio","Aluguel casa","CPFL","Água","Terreno","Carro","Internet","Mercado","Funcionário","Combustível"];
-// st.d: "AAAA-MM-DD" -> {g,x} · st.base: "AAAA-MM" -> caixa no início do mês · st.fixos: [{id,dia,nome,valor}]
-// st.pago / st.ov: "AAAA-MM|id" -> pago no mês / valor só daquele mês
-let st={nome:"",d:{},base:{},fixos:[],pago:{},ov:{}};
-let view=null, fxSel=null, diaKey=null;
+const NOMES={lineti:"Lineti",micaela:"Micaela",studio:"Studio",porquinho:"Porquinho"};
+let recs={}, view=null, diaKey=null;
 const BRL=new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"});
 const fmt=v=>BRL.format(v||0);
 const sfmt=v=>(v>0?"+":v<0?"−":"")+BRL.format(Math.abs(v||0));
@@ -305,53 +295,66 @@ const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
 const monthName=(y,m)=>cap(new Date(y,m,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"}));
 const mShort=(y,m)=>cap(new Date(y,m,1).toLocaleDateString("pt-BR",{month:"short"}).replace(".",""));
 const dim=(y,m)=>new Date(y,m+1,0).getDate();
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const ed=v=>typeof v==="number"?String(v).replace(".",","):"";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const $=id=>document.getElementById(id);
-const uid=()=>"f"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const WD=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+const ymDiff=(a,b)=>{const [ay,am]=a.split("-").map(Number),[by,bm]=b.split("-").map(Number);return (by-ay)*12+(bm-am);};
+const tsDe=id=>parseInt(String(id||"").slice(1),36)||0;
 
-function parseVal(s){
-  s=String(s).trim().replace(/R\$|\s/g,"");
-  if(!s) return null;
-  let t=0;
-  for(const p of s.split("+")){
-    if(!p) continue;
-    let q=p; if(q.includes(",")) q=q.replace(/\./g,"").replace(",",".");
-    const n=Number(q); if(!isFinite(n)) return undefined; t+=n;
-  }
-  return r2(t);
-}
+// Mesmas regras do Contas em dia
+const contas=()=>Object.entries(recs).filter(([k])=>k.startsWith("contas/")).map(([k,v])=>({...v,id:k.slice(7)}));
+const mesRec=p=>recs["meses/"+p]||{};
+const temParc=c=>c.parcelaTotal>0&&c.parcelaAtual>0&&c.refMes;
+const ativa=(c,p)=>{if(!temParc(c))return true;const n=c.parcelaAtual+ymDiff(c.refMes,p);return n>=1&&n<=c.parcelaTotal;};
+const valorNo=(c,p)=>{const v=(mesRec(p).valores||{})[c.id];return typeof v==="number"?v:(c.valor||0);};
+const quemPagou=x=>x&&typeof x==="object"?x.conta:null;
 
 function months(){
   const out=[];
   for(let i=0;;i++){const d=new Date(INI.y,INI.m+i,1);out.push({y:d.getFullYear(),m:d.getMonth()});if(d.getFullYear()===FIM.y&&d.getMonth()===FIM.m)break;}
   return out;
 }
-// contas fixas de um mês: dia 29–31 cai no último dia em meses curtos
+// contas fixas de um mês: dia 29–31 cai no último dia em meses curtos; sem dia aparece só na lista
 function fixosDoMes(y,m){
-  const n=dim(y,m), p=ym(y,m);
-  return st.fixos.filter(f=>f.nome||f.valor).map(f=>{
-    const k=p+"|"+f.id, ov=st.ov[k];
-    return {...f,diaM:Math.min(f.dia,n),v:typeof ov==="number"?ov:(f.valor||0),ov:typeof ov==="number",pago:!!st.pago[k],pk:k};
-  }).sort((a,b)=>a.diaM-b.diaM||a.nome.localeCompare(b.nome));
+  const n=dim(y,m), p=ym(y,m), pagos=mesRec(p).pagos||{};
+  return contas().filter(c=>ativa(c,p)).map(c=>{
+    const parc=temParc(c)?c.parcelaAtual+ymDiff(c.refMes,p):null;
+    return {...c,diaM:c.dia?Math.min(c.dia,n):null,v:valorNo(c,p),pago:!!pagos[c.id],quem:quemPagou(pagos[c.id]),parc};
+  }).sort((a,b)=>(a.diaM||99)-(b.diaM||99)||(a.ordem||0)-(b.ordem||0));
 }
 function compute(){
-  let prev=0;
   return months().map(({y,m})=>{
-    const p=ym(y,m), n=dim(y,m);
+    const p=ym(y,m), lanc=mesRec(p).lancamentos||[], dias={};
     let g=0,x=0;
-    for(let d=1;d<=n;d++){const e=st.d[key(y,m,d)];if(e){g+=e.g||0;x+=e.x||0;}}
+    for(const l of lanc){
+      if(l.tipo!=="entrada"&&l.tipo!=="saida")continue;
+      const e=dias[l.data]=dias[l.data]||{g:0,x:0};
+      if(l.tipo==="entrada"){e.g+=l.valor;g+=l.valor;}else{e.x+=l.valor;x+=l.valor;}
+    }
     g=r2(g);x=r2(x);
     const fx=fixosDoMes(y,m);
     const fxTot=r2(fx.reduce((s,f)=>s+f.v,0)), fxPago=r2(fx.filter(f=>f.pago).reduce((s,f)=>s+f.v,0));
-    const b=st.base[p], edited=typeof b==="number";
-    const ini=edited?b:prev;
-    const res=r2(g-x-fxPago);
-    const row={y,m,p,calc:prev,edited,ini,g,x,fx,fxTot,fxPago,res,fim:r2(ini+res),prev:r2(ini+res-(fxTot-fxPago))};
-    prev=row.fim;
-    return row;
+    return {y,m,p,g,x,dias,fx,fxTot,fxPago,res:r2(g-x-fxPago)};
   });
+}
+// Saldo de cada conta: valor conferido + o que entrou e saiu depois (igual à aba Saldos)
+function saldos(){
+  const base=(recs["config/saldos"]||{}).contas||{}, r={};
+  for(const id of Object.keys(NOMES))r[id]={saldo:base[id]?.saldo||0,em:base[id]?.em||0,ok:!!base[id]};
+  const mexe=(c,v,t)=>{const s=r[c];if(s&&t>s.em)s.saldo+=v;};
+  const cs=Object.fromEntries(contas().map(c=>[c.id,c]));
+  for(const [k,mr] of Object.entries(recs)){
+    if(!k.startsWith("meses/"))continue;
+    const p=k.slice(6);
+    for(const l of mr.lancamentos||[]){
+      const t=tsDe(l.id);
+      if(l.tipo==="saida"&&l.conta)mexe(l.conta,-l.valor,t);
+      if(l.tipo==="entrada"&&l.conta)mexe(l.conta,l.valor,t);
+      if(l.tipo==="transf"){mexe(l.de,-l.valor,t);mexe(l.para,l.valor,t);}
+    }
+    for(const [cid,pg] of Object.entries(mr.pagos||{})){const c=cs[cid];if(c&&quemPagou(pg))mexe(pg.conta,-valorNo(c,p),pg.em);}
+  }
+  return r;
 }
 
 function render(){
@@ -362,25 +365,26 @@ function render(){
   const isNow=R.y===now.getFullYear()&&R.m===now.getMonth();
   $("mlabel").textContent=monthName(R.y,R.m);
   $("prev").disabled=view===0;$("next").disabled=view===rows.length-1;
-  $("bname").textContent=st.nome||"Studio";
   $("caltitle").textContent="Diário de "+new Date(R.y,R.m,1).toLocaleDateString("pt-BR",{month:"long"});
-  const act=document.activeElement&&document.activeElement.id;
 
   // KPIs
+  const S=saldos(), nas=r2(S.lineti.saldo+S.micaela.saldo+S.studio.saldo);
   const nPago=R.fx.filter(f=>f.pago).length, pr=R.fxTot>0?R.fxPago/R.fxTot:0;
-  const prox=isNow?R.fx.find(f=>!f.pago&&f.diaM>=now.getDate()):null;
-  const atras=isNow?R.fx.filter(f=>!f.pago&&f.diaM<now.getDate()):[];
+  const comDia=R.fx.filter(f=>f.diaM);
+  const prox=isNow?comDia.find(f=>!f.pago&&f.diaM>=now.getDate()):null;
+  const atras=isNow?comDia.filter(f=>!f.pago&&f.diaM<now.getDate()):[];
+  const nDias=Object.values(R.dias).filter(e=>e.g).length;
   $("kpis").innerHTML=`
-    <div class="kpi bk"><span class="k">Valor atual <em>editável</em></span><input id="k-atual" class="bkin num" type="text" inputmode="decimal" aria-label="Valor atual em caixa" value="${R.fim.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}"><span class="s">${R.edited?`Começou o mês com ${fmt(R.ini)} · <button type="button" class="lnk" id="k-reset">usar saldo de ${mShort(...prevYm(R))}</button>`:`Começou o mês com ${fmt(R.ini)}`}</span></div>
-    <div class="kpi"><span class="k">Ganhos do mês</span><span class="v pos">${fmt(R.g)}</span><span class="s">${(c=>c+(c===1?" dia":" dias")+" com ganho")(diasCom(R,"g"))}</span></div>
+    <div class="kpi bk"><span class="k">Saldo nas contas</span><span class="v num">${fmt(nas)}</span><span class="s">Studio ${fmt(S.studio.saldo)} · Lineti ${fmt(S.lineti.saldo)} · Micaela ${fmt(S.micaela.saldo)} · Porquinho ${fmt(S.porquinho.saldo)}</span></div>
+    <div class="kpi"><span class="k">Ganhos do mês</span><span class="v pos">${fmt(R.g)}</span><span class="s">${nDias} ${nDias===1?"dia":"dias"} com ganho</span></div>
     <div class="kpi"><span class="k">Gastos do mês</span><span class="v neg">${fmt(R.x)}</span><span class="s">Sem contar as contas fixas</span></div>
     <div class="kpi"><span class="k">Contas fixas</span><span class="v acc">${fmt(R.fxTot)}</span><div class="bar"><i style="width:${(pr*100).toFixed(1)}%"></i></div><span class="s">${nPago} de ${R.fx.length} pagas · falta ${fmt(r2(R.fxTot-R.fxPago))}</span></div>
     <div class="kpi"><span class="k">Resultado do mês</span><span class="v ${R.res>0?"pos":R.res<0?"neg":""}">${sfmt(R.res)}</span><span class="s">Ganhos − gastos − fixos pagos</span></div>
-    <div class="kpi"><span class="k">${isNow?"Próxima conta":"Saldo previsto"}</span>${isNow?(prox?`<span class="v acc">${esc(prox.nome||"Conta")}</span><span class="s">Dia ${pad(prox.diaM)} · ${fmt(prox.v)}${atras.length?` · <span class="neg">${atras.length} atrasada${atras.length>1?"s":""}</span>`:""}</span>`:`<span class="v ${atras.length?"neg":"pos"}">${atras.length?atras.length+" atrasada"+(atras.length>1?"s":""):"Tudo pago"}</span><span class="s">Saldo previsto ${fmt(R.prev)}</span>`):`<span class="v">${fmt(R.prev)}</span><span class="s">Pagando todas as fixas</span>`}</div>`;
+    <div class="kpi"><span class="k">${isNow?"Próxima conta":"Falta pagar"}</span>${isNow?(prox?`<span class="v acc">${esc(prox.nome||"Conta")}</span><span class="s">Dia ${pad(prox.diaM)} · ${fmt(prox.v)}${atras.length?` · <span class="neg">${atras.length} atrasada${atras.length>1?"s":""}</span>`:""}</span>`:`<span class="v ${atras.length?"neg":"pos"}">${atras.length?atras.length+" atrasada"+(atras.length>1?"s":""):"Tudo pago"}</span><span class="s">Falta pagar ${fmt(r2(R.fxTot-R.fxPago))}</span>`):`<span class="v">${fmt(r2(R.fxTot-R.fxPago))}</span><span class="s">Contas fixas ainda não pagas</span>`}</div>`;
 
   // Calendário seg–dom
   const n=dim(R.y,R.m), todayKey=key(now.getFullYear(),now.getMonth(),now.getDate());
-  const byDay={};R.fx.forEach(f=>(byDay[f.diaM]=byDay[f.diaM]||[]).push(f));
+  const byDay={};comDia.forEach(f=>(byDay[f.diaM]=byDay[f.diaM]||[]).push(f));
   let h=WD.map(w=>`<div class="hd">${w}</div>`).join("")+`<div class="hd">Semana</div>`;
   let start=1-((new Date(R.y,R.m,1).getDay()+6)%7), wkN=0;
   while(start<=n){
@@ -388,22 +392,21 @@ function render(){
     for(let i=0;i<7;i++){
       const dd=start+i;
       if(dd<1||dd>n){cells+=`<div class="day out" aria-hidden="true"></div>`;continue;}
-      const k=key(R.y,R.m,dd), e=st.d[k]||{}, fl=byDay[dd]||[];
+      const k=key(R.y,R.m,dd), e=R.dias[k]||{g:0,x:0}, fl=byDay[dd]||[];
       const fp=r2(fl.filter(f=>f.pago).reduce((s,f)=>s+f.v,0));
-      const net=r2((e.g||0)-(e.x||0)-fp), any=e.g||e.x||fp;
-      wg+=e.g||0;wx+=e.x||0;wf+=fp;
+      const net=r2(e.g-e.x-fp), any=e.g||e.x||fp;
+      wg+=e.g;wx+=e.x;wf+=fp;
       const cls=any?(net>0?"g":net<0?"l":""):"";
       let fcls="",ftxt="";
       if(fl.length){
         const tot=r2(fl.reduce((s,f)=>s+f.v,0)), all=fl.every(f=>f.pago);
-        const late=!all&&k<todayKey;
-        fcls=all?"ok":late?"due":"has";
+        fcls=all?"ok":!all&&k<todayKey?"due":"has";
         ftxt=`<span>${all?"✓ ":""}${fl.length>1?fl.length+" · ":""}${fmt(tot)}</span>`;
       }
-      cells+=`<div class="day ${cls} ${k===todayKey?"today":""}" data-k="${k}">
+      cells+=`<div class="day ${cls} ${k===todayKey?"today":""}">
         <div class="top"><span><span class="dn">${pad(dd)}</span><span class="wd">${WD[i]}</span></span>${any?`<span class="net ${net>0?"pos":net<0?"neg":""}">${sfmt(net)}</span>`:""}</div>
-        <label class="fld gn"><b>+</b><input id="g-${k}" data-f="g" type="text" inputmode="decimal" aria-label="Ganho de ${pad(dd)}/${pad(R.m+1)}" placeholder="Ganho" value="${ed(e.g)}"></label>
-        <label class="fld gs"><b>−</b><input id="x-${k}" data-f="x" type="text" inputmode="decimal" aria-label="Gasto de ${pad(dd)}/${pad(R.m+1)}" placeholder="Gasto" value="${ed(e.x)}"></label>
+        <span class="dv gn ${e.g?"":"zero"}"><b>+</b>${e.g?fmt(r2(e.g)):"—"}</span>
+        <span class="dv gs ${e.x?"":"zero"}"><b>−</b>${e.x?fmt(r2(e.x)):"—"}</span>
         <button type="button" class="fx ${fcls}" data-fx="${dd}" title="${fl.length?esc(fl.map(f=>f.nome).join(", ")):"Nenhuma conta fixa neste dia"}">FIXO${ftxt}</button>
       </div>`;
     }
@@ -413,216 +416,80 @@ function render(){
     start+=7;
   }
   $("cal").innerHTML=h;
-  if(act&&/^(g-|x-|k-atual)/.test(act)){const el=$(act);if(el){el.focus();try{el.select()}catch(e){}}}
 
   // Ano
   const yr=R.y, yrows=rows.map((r,i)=>[r,i]).filter(([r])=>r.y===yr);
   $("ytitle").textContent=`Ano ${yr}`;
   $("tbody").innerHTML=yrows.map(([r,i])=>`<tr data-i="${i}" class="${i===view?"sel":""}">
-    <td>${mShort(r.y,r.m)}</td><td>${r.edited?'<span title="Valor digitado por você" style="color:var(--accent)">● </span>':""}${fmt(r.ini)}</td>
+    <td>${mShort(r.y,r.m)}</td>
     <td class="${r.g?"pos":""}">${r.g?fmt(r.g):"—"}</td><td class="${r.x?"neg":""}">${r.x?fmt(r.x):"—"}</td><td>${r.fxPago?fmt(r.fxPago):"—"}</td>
-    <td class="${r.res>0?"pos":r.res<0?"neg":""}">${r.res?sfmt(r.res):"—"}</td><td>${fmt(r.fim)}</td></tr>`).join("");
+    <td class="${r.res>0?"pos":r.res<0?"neg":""}">${r.res?sfmt(r.res):"—"}</td></tr>`).join("");
   const T=yrows.reduce((a,[r])=>({g:a.g+r.g,x:a.x+r.x,f:a.f+r.fxPago,res:a.res+r.res}),{g:0,x:0,f:0,res:0});
-  $("tfoot").innerHTML=`<tr><td>Total</td><td></td><td class="pos">${fmt(r2(T.g))}</td><td class="neg">${fmt(r2(T.x))}</td><td>${fmt(r2(T.f))}</td><td class="${T.res>0?"pos":T.res<0?"neg":""}">${sfmt(r2(T.res))}</td><td></td></tr>`;
+  $("tfoot").innerHTML=`<tr><td>Total</td><td class="pos">${fmt(r2(T.g))}</td><td class="neg">${fmt(r2(T.x))}</td><td>${fmt(r2(T.f))}</td><td class="${T.res>0?"pos":T.res<0?"neg":""}">${sfmt(r2(T.res))}</td></tr>`;
 
   // Lista de fixas do mês
   $("ftitle").textContent="Contas fixas de "+new Date(R.y,R.m,1).toLocaleDateString("pt-BR",{month:"long"});
   $("fsub").textContent=R.fx.length?`${fmt(R.fxPago)} pagos de ${fmt(R.fxTot)}`:"";
   $("flist").innerHTML=R.fx.length?R.fx.map(f=>{
-    const k=key(R.y,R.m,f.diaM), late=!f.pago&&k<todayKey, dleft=isNow?f.diaM-now.getDate():99;
-    const st2=f.pago?"Paga":late?"Atrasada":k===todayKey?"Vence hoje":dleft>0&&dleft<=3?`Vence em ${dleft} dia${dleft>1?"s":""}`:"A pagar";
-    return `<div class="fitem ${f.pago?"paid":late?"late":dleft>=0&&dleft<=3?"soon":""}"><span class="dd">${pad(f.diaM)}</span><span class="nm">${esc(f.nome||"Conta")}<small>${st2}</small></span><span class="vl">${fmt(f.v)}</span><button type="button" class="pay ${f.pago?"on":""}" data-pk="${f.pk}">${f.pago?"✓ Pago":"Pagar"}</button></div>`;
-  }).join(""):`<div class="empty">Nenhuma conta fixa ainda. Abra o <button type="button" class="lnk" data-openfx>Calendário gastos fixos</button> para cadastrar.</div>`;
+    const k=f.diaM?key(R.y,R.m,f.diaM):null, late=!f.pago&&k&&k<todayKey, dleft=isNow&&f.diaM?f.diaM-now.getDate():99;
+    const st2=(f.pago?"Paga"+(f.quem?" · "+NOMES[f.quem]:""):!k?"Sem dia":late?"Atrasada":k===todayKey?"Vence hoje":dleft>0&&dleft<=3?`Vence em ${dleft} dia${dleft>1?"s":""}`:"A pagar")+(f.parc?` · parcela ${f.parc} de ${f.parcelaTotal}`:"");
+    return `<div class="fitem ${f.pago?"paid":late?"late":dleft>=0&&dleft<=3?"soon":""}"><span class="dd">${f.diaM?pad(f.diaM):"–"}</span><span class="nm">${esc(f.nome||"Conta")}<small>${esc(st2)}</small></span><span class="vl">${fmt(f.v)}</span><span class="pay ${f.pago?"on":""}">${f.pago?"✓ Pago":"A pagar"}</span></div>`;
+  }).join(""):`<div class="empty">Nenhuma conta fixa. Cadastre no <a class="lnk" href="./contas/#contas">Contas em dia</a>.</div>`;
 
   if($("dlg-dia").open) renderDia();
 }
-function prevYm(R){const d=new Date(R.y,R.m-1,1);return [d.getFullYear(),d.getMonth()];}
-function diasCom(R,f){let c=0;for(let d=1;d<=dim(R.y,R.m);d++){const e=st.d[key(R.y,R.m,d)];if(e&&e[f])c++;}return c;}
 
-// ---- salvar ----
-let tmr=null;
-function save(){try{localStorage.setItem(LS,JSON.stringify(st));setStatus("ok",window.__nuvem?"Salvo na nuvem":"Salvo neste navegador");}catch(e){setStatus("warn","Não foi possível salvar neste navegador");}if(window.__nuvem)window.__nuvem.push(st);}
-function persist(ms){clearTimeout(tmr);tmr=setTimeout(save,ms||300);}
-function setStatus(c,t){const s=$("status");s.className="status "+c;s.lastChild.textContent=t;}
-function load(x){
-  if(!x||typeof x!=="object") return;
-  st={nome:typeof x.nome==="string"?x.nome:"",d:x.d||{},base:x.base||{},fixos:Array.isArray(x.fixos)?x.fixos:[],pago:x.pago||{},ov:x.ov||{}};
-}
-const later=()=>setTimeout(render,0);
-
-// ---- eventos: calendário e topo ----
-$("cal").addEventListener("change",e=>{
-  const f=e.target.dataset.f;if(!f)return;
-  const k=e.target.closest(".day").dataset.k, v=parseVal(e.target.value);
-  if(v===undefined){e.target.value=ed((st.d[k]||{})[f]);return;}
-  const o={...(st.d[k]||{})};
-  if(v)o[f]=v;else delete o[f];
-  if(o.g||o.x)st.d[k]=o;else delete st.d[k];
-  persist();later();
-});
-$("cal").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches("input"))e.target.blur();});
-$("cal").addEventListener("click",e=>{const b=e.target.closest("[data-fx]");if(b)openDia(+b.dataset.fx);});
-$("kpis").addEventListener("change",e=>{
-  if(e.target.id!=="k-atual")return;
-  const R=compute()[view], v=parseVal(e.target.value);
-  if(v===undefined||v===null){render();return;}
-  st.base[R.p]=r2(v-R.res);persist();later();
-});
-$("kpis").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="k-atual")e.target.blur();});
-$("kpis").addEventListener("click",e=>{if(e.target.id==="k-reset"){delete st.base[compute()[view].p];persist();render();}});
-$("prev").onclick=()=>{view--;render();};
-$("next").onclick=()=>{view++;render();};
-$("tbody").addEventListener("click",e=>{const tr=e.target.closest("tr");if(tr){view=+tr.dataset.i;render();window.scrollTo({top:0,behavior:"smooth"});}});
-$("flist").addEventListener("click",e=>{
-  const b=e.target.closest("[data-pk]");if(b){togglePago(b.dataset.pk);return;}
-  if(e.target.closest("[data-openfx]"))openFixos();
-});
-function togglePago(k){if(st.pago[k])delete st.pago[k];else st.pago[k]=true;persist();render();}
-$("p-nome").addEventListener("input",e=>{st.nome=e.target.value.trim();$("bname").textContent=st.nome||"Studio";persist(500);});
-
-// ---- janela: lembrete do dia ----
+// ---- janela: contas do dia (só leitura) ----
 function openDia(dd){const R=compute()[view];diaKey={y:R.y,m:R.m,d:dd};renderDia();$("dlg-dia").showModal();}
 function renderDia(){
   if(!diaKey)return;
   const {y,m,d}=diaKey, fl=fixosDoMes(y,m).filter(f=>f.diaM===d);
   $("ddi-t").textContent=`Fixo de ${pad(d)}/${pad(m+1)}`;
   $("ddi-s").textContent=cap(new Date(y,m,d).toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}));
-  const real=st.fixos.filter(f=>Math.min(f.dia,dim(y,m))===d).length;
-  $("ddi-b").innerHTML=(fl.length?fl.map(f=>`<div class="ritem ${f.pago?"paid":""}">
-      <div class="rt"><span>${esc(f.nome||"Conta")}</span><button type="button" class="pay ${f.pago?"on":""}" data-pk="${f.pk}">${f.pago?"✓ Pago":"Marcar como pago"}</button></div>
-      <label class="rv">Valor deste mês<input type="text" inputmode="decimal" data-ov="${f.pk}" value="${ed(f.v)}"></label>
-      ${f.ov?`<span class="note">Valor padrão ${fmt(f.valor)} · <button type="button" class="lnk" data-ovx="${f.pk}">voltar ao padrão</button></span>`:`<span class="note">Se o valor mudou só neste mês (luz, água), ajuste aqui. Os outros meses continuam com ${fmt(f.valor)}.</span>`}
-    </div>`).join(""):`<p class="empty">Nenhuma conta fixa marcada para o dia ${pad(d)}.</p>`)
-    +`<button type="button" class="btn" data-goedit="${d}">${real||fl.length?"Editar contas deste dia":"Adicionar conta fixa no dia "+pad(d)}</button>`;
+  $("ddi-b").innerHTML=fl.length?fl.map(f=>`<div class="ritem ${f.pago?"paid":""}">
+      <div class="rt"><span>${esc(f.nome||"Conta")}</span><span class="pay ${f.pago?"on":""}">${f.pago?"✓ Pago":"A pagar"}</span></div>
+      <div class="rv"><span>Valor deste mês</span><b class="num" style="margin-left:auto;color:var(--fg)">${fmt(f.v)}</b></div>
+      ${f.pago&&f.quem?`<span class="note">Pago pela conta ${NOMES[f.quem]}</span>`:""}
+    </div>`).join("")+`<a class="btn" href="./contas/#contas">Marcar como paga no Contas em dia</a>`:`<p class="empty">Nenhuma conta fixa no dia ${pad(d)}.</p>`;
 }
-$("ddi-b").addEventListener("click",e=>{
-  const p=e.target.closest("[data-pk]");if(p){togglePago(p.dataset.pk);return;}
-  const x=e.target.closest("[data-ovx]");if(x){delete st.ov[x.dataset.ovx];persist();render();return;}
-  const g=e.target.closest("[data-goedit]");if(g){$("dlg-dia").close();openFixos(+g.dataset.goedit);}
-});
-$("ddi-b").addEventListener("change",e=>{
-  const k=e.target.dataset.ov;if(!k)return;
-  const v=parseVal(e.target.value);if(v===undefined||v===null){render();return;}
-  const f=st.fixos.find(f=>f.id===k.split("|")[1]);
-  if(f&&v===(f.valor||0))delete st.ov[k];else st.ov[k]=v;
-  persist();render();
-});
-$("ddi-b").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches("input"))e.target.blur();});
-
-// ---- janela: calendário de gastos fixos ----
-function openFixos(dd){fxSel=dd||fxSel||1;renderFixos();$("dlg-fixos").showModal();}
-function renderFixos(focusId){
-  const tot=r2(st.fixos.reduce((s,f)=>s+(f.valor||0),0)), used=st.fixos.filter(f=>f.nome||f.valor);
-  $("dfx-tot").innerHTML=`<span>Total por mês <b>${fmt(tot)}</b></span><span>${used.length} conta${used.length===1?"":"s"} fixa${used.length===1?"":"s"}</span>`;
-  let h="";
-  for(let d=1;d<=31;d++){
-    const fl=st.fixos.filter(f=>f.dia===d);
-    const t=r2(fl.reduce((s,f)=>s+(f.valor||0),0));
-    h+=`<button type="button" class="fd ${fl.length?"has":""} ${d===fxSel?"sel":""}" data-d="${d}"><span class="n">${pad(d)}</span>${fl.slice(0,2).map(f=>`<span class="t">${esc(f.nome||"Sem nome")}</span>`).join("")}${fl.length>2?`<span class="t">+${fl.length-2}</span>`:""}${fl.length?`<span class="t v">${fmt(t)}</span>`:""}</button>`;
-  }
-  $("dfx-cal").innerHTML=h;
-  const fl=st.fixos.filter(f=>f.dia===fxSel), names=new Set(st.fixos.map(f=>f.nome));
-  $("dfx-ed").innerHTML=`<h4>Dia ${pad(fxSel)}<small>${fxSel>28?"Em meses mais curtos, aparece no último dia do mês":"Nome da conta e valor"}</small></h4>
-    ${fl.map(f=>`<div class="frow" data-id="${f.id}"><input id="fn-${f.id}" data-k="nome" type="text" maxlength="40" placeholder="Nome da conta" value="${esc(f.nome)}" aria-label="Nome da conta"><input id="fv-${f.id}" data-k="valor" class="num" type="text" inputmode="decimal" placeholder="R$ 0,00" value="${ed(f.valor)}" aria-label="Valor"><button type="button" data-del="${f.id}" aria-label="Remover conta" title="Remover">×</button></div>`).join("")||`<p class="note">Nenhuma conta neste dia. Toque num nome abaixo ou em "Outra conta".</p>`}
-    <div class="chips">${SUG.map(s=>`<button type="button" data-sug="${esc(s)}" class="${names.has(s)?"used":""}">+ ${esc(s)}</button>`).join("")}<button type="button" data-sug="">+ Outra conta</button></div>`;
-  if(focusId){const el=$(focusId);if(el){el.focus();try{el.select()}catch(e){}}}
-}
-$("dfx-cal").addEventListener("click",e=>{const b=e.target.closest("[data-d]");if(b){fxSel=+b.dataset.d;renderFixos();}});
-$("dfx-ed").addEventListener("click",e=>{
-  const s=e.target.closest("[data-sug]");
-  if(s){const f={id:uid(),dia:fxSel,nome:s.dataset.sug,valor:0};st.fixos.push(f);persist();render();renderFixos(s.dataset.sug?"fv-"+f.id:"fn-"+f.id);return;}
-  const d=e.target.closest("[data-del]");
-  if(d){st.fixos=st.fixos.filter(f=>f.id!==d.dataset.del);persist();render();renderFixos();}
-});
-$("dfx-ed").addEventListener("change",e=>{
-  const row=e.target.closest(".frow");if(!row)return;
-  const f=st.fixos.find(f=>f.id===row.dataset.id);if(!f)return;
-  if(e.target.dataset.k==="nome")f.nome=e.target.value.trim();
-  else{const v=parseVal(e.target.value);if(v===undefined){e.target.value=ed(f.valor);return;}f.valor=v||0;}
-  persist();render();setTimeout(()=>{const a=document.activeElement&&document.activeElement.id;renderFixos(a);},0);
-});
-$("dfx-ed").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches("input"))e.target.blur();});
+$("cal").addEventListener("click",e=>{const b=e.target.closest("[data-fx]");if(b)openDia(+b.dataset.fx);});
+$("prev").onclick=()=>{view--;render();};
+$("next").onclick=()=>{view++;render();};
+$("tbody").addEventListener("click",e=>{const tr=e.target.closest("tr");if(tr){view=+tr.dataset.i;render();window.scrollTo({top:0,behavior:"smooth"});}});
 document.querySelectorAll("dialog").forEach(dl=>{
   dl.addEventListener("click",e=>{if(e.target===dl||e.target.closest("[data-close]")){dl.close();}});
 });
-$("b-fixos").onclick=()=>openFixos();
-$("b-fixos2").onclick=()=>openFixos();
 
-// ---- backup ----
-$("b-exp").onclick=()=>{
-  const blob=new Blob([JSON.stringify(st,null,1)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-  a.download="studio-caixa-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-};
-$("b-imp").onchange=e=>{
-  const f=e.target.files[0];if(!f)return;
-  f.text().then(t=>{const x=JSON.parse(t);if(!x||!x.d)throw 0;load(x);view=null;$("p-nome").value=st.nome;save();render();setStatus("ok","Backup restaurado");})
-   .catch(()=>setStatus("warn","Arquivo de backup inválido"));
-  e.target.value="";
-};
+function setStatus(c,t){const s=$("status");s.className="status "+c;s.lastChild.textContent=t;}
 
 // ---- ponte com a sincronização (script abaixo) ----
-window.__app={LS,get:()=>st,setStatus,
-  apply(x){load(x);$("p-nome").value=st.nome;try{localStorage.setItem(LS,JSON.stringify(st));}catch(e){}render();if($("dlg-fixos").open)renderFixos();}};
+window.__app={setStatus,
+  apply(x){recs=x&&typeof x==="object"?x:{};try{localStorage.setItem(LS,JSON.stringify(recs));}catch(e){}render();},
+  gate(show){$("gate").hidden=!show;}};
 
-// ---- início ----
-try{load(JSON.parse(localStorage.getItem(LS)||"null"));}catch(e){}
-$("p-nome").value=st.nome;
-render();setStatus("ok","Salvo neste navegador");
+// ---- início: última cópia vista neste aparelho ----
+try{recs=JSON.parse(localStorage.getItem(LS)||"null")||{};}catch(e){recs={};}
+render();setStatus("warn",Object.keys(recs).length?"Mostrando a última cópia deste aparelho":"Entre com Google para carregar");
 })();
 </script>
 
 <script type="module">
-// Sincronização pelo Firebase (login com Google). Sem configuração, a página funciona só neste navegador.
+// Lê pelo Firebase (login com Google) o documento casas/familia, o mesmo que o Contas em dia grava.
 const FIREBASE_CONFIG={apiKey:"AIzaSyC7J-DPwJxHqMlGccX0O_XRDfTDD9M2XI8",authDomain:"financas-lineti.firebaseapp.com",projectId:"financas-lineti",storageBucket:"financas-lineti.firebasestorage.app",messagingSenderId:"714622177070",appId:"1:714622177070:web:d6b5ec841504241632f4bf"};
-const APP="studio";
+const CASA="familia";
 const V="10.12.2", G=`https://www.gstatic.com/firebasejs/${V}/`;
 const A=window.__app, $=id=>document.getElementById(id);
 const btn=$("b-cloud"), dlg=$("dlg-cloud"), body=$("dcl-b");
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-if(FIREBASE_CONFIG){
-  btn.hidden=false;
-  try{await start();}catch(e){console.error(e);ui(null,"Não consegui conectar à nuvem");}
-}
+btn.hidden=false;
+try{await start();}catch(e){console.error(e);ui(null,"Não consegui conectar à nuvem");}
 async function start(){
   const [{initializeApp},au,fs]=await Promise.all([import(G+"firebase-app.js"),import(G+"firebase-auth.js"),import(G+"firebase-firestore.js")]);
   const app=initializeApp(FIREBASE_CONFIG), auth=au.getAuth(app);
   let db;try{db=fs.initializeFirestore(app,{localCache:fs.persistentLocalCache()});}catch(e){db=fs.getFirestore(app);}
-  let user=null, ref=null, unsub=null, ready=false, last="";
-  const SYNC=A.LS+"-sync";
-  window.__nuvem=null;
-  // primeira vez neste aparelho: junta o que já estava aqui com o que está na nuvem
-  const merge=(a,b)=>({nome:b.nome||a.nome||"",d:{...a.d,...b.d},base:{...a.base,...b.base},pago:{...a.pago,...b.pago},ov:{...a.ov,...b.ov},
-    fixos:[...(b.fixos||[]),...(a.fixos||[]).filter(f=>!(b.fixos||[]).some(g=>g.id===f.id))]});
-  const empty=x=>!x||(!Object.keys(x.d||{}).length&&!(x.fixos||[]).length&&!Object.keys(x.base||{}).length);
-  const push=x=>{if(!ref||!ready)return;const s=JSON.stringify(x);if(s===last)return;last=s;
-    fs.setDoc(ref,{data:s,updated:fs.serverTimestamp()}).catch(e=>{console.error(e);ui(user,"Erro ao salvar na nuvem");});};
-  au.onAuthStateChanged(auth,async u=>{
-    if(unsub){unsub();unsub=null;}
-    user=u; ready=false; window.__nuvem=null;
-    if(!u){ui(null);A.setStatus("ok","Salvo neste navegador");return;}
-    ui(u,"Conectando…");
-    ref=fs.doc(db,"users",u.uid,"apps",APP);
-    const local=A.get();
-    const first=localStorage.getItem(SYNC)!==u.uid;
-    unsub=fs.onSnapshot(ref,snap=>{
-      if(snap.metadata.hasPendingWrites)return;
-      let cloud=null;try{cloud=snap.exists()?JSON.parse(snap.data().data):null;}catch(e){}
-      if(!ready){
-        ready=true;window.__nuvem={push};
-        let x=cloud;
-        if(first&&!empty(local))x=cloud?merge(local,cloud):local;
-        try{localStorage.setItem(SYNC,u.uid);}catch(e){}
-        if(x){last=JSON.stringify(cloud);A.apply(x);}
-        push(A.get());
-        ui(u);A.setStatus("ok","Salvo na nuvem");
-        return;
-      }
-      if(cloud&&snap.data().data!==JSON.stringify(A.get())){last=snap.data().data;A.apply(cloud);A.setStatus("ok","Atualizado de outro aparelho");}
-    },e=>{console.error(e);ui(u,"Sem permissão na nuvem. Confira as regras do Firestore.");});
-  });
-  btn.onclick=()=>{
+  const ref=fs.doc(db,"casas",CASA);
+  let user=null, unsub=null;
+  const entrar=()=>{
     if(user){dlg.showModal();return;}
     const p=new au.GoogleAuthProvider();p.setCustomParameters({prompt:"select_account"});
     au.signInWithPopup(auth,p).catch(e=>{
@@ -630,14 +497,25 @@ async function start(){
       if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request"){console.error(e);ui(null,e.code==="auth/unauthorized-domain"?"Domínio não autorizado no Firebase":"Não consegui entrar");}
     });
   };
+  au.onAuthStateChanged(auth,u=>{
+    if(unsub){unsub();unsub=null;}
+    user=u;
+    if(!u){ui(null);A.gate(true);return;}
+    A.gate(false);ui(u,"Conectando…");
+    unsub=fs.onSnapshot(ref,snap=>{
+      A.apply(snap.exists()?snap.data():{});
+      ui(u);A.setStatus("ok",snap.metadata.fromCache?"Mostrando a cópia deste aparelho":"Atualizado com o Contas em dia");
+    },e=>{console.error(e);ui(u,e?.code==="permission-denied"?"Este e-mail não tem acesso":"Erro na nuvem");A.setStatus("warn","Sem permissão para ler os dados. Confira as regras do Firestore.");});
+  });
+  btn.onclick=entrar;$("b-gate").onclick=entrar;
   au.getRedirectResult(auth).catch(()=>{});
   body.addEventListener("click",e=>{if(e.target.id==="b-sair"){au.signOut(auth);dlg.close();}});
 }
 function ui(u,msg){
   btn.classList.toggle("on",!!u&&!msg);btn.classList.toggle("err",!!msg&&msg!=="Conectando…");
   btn.lastChild.textContent=u?(msg||"Sincronizado"):(msg||"Entrar com Google");
-  btn.title=u?u.email||"":"Entre para ver o mesmo histórico no celular e no computador";
-  body.innerHTML=u?`<p>Conectada como <b>${esc(u.email||"")}</b>.</p><p>Tudo o que você digitar aqui aparece nos outros aparelhos em que entrar com esta mesma conta Google.</p><button type="button" class="btn" id="b-sair">Sair desta conta</button><p>Ao sair, os dados continuam neste aparelho, mas param de sincronizar.</p>`:"";
+  btn.title=u?u.email||"":"Entre com a mesma conta do Contas em dia";
+  body.innerHTML=u?`<p>Conectada como <b>${esc(u.email||"")}</b>.</p><p>Esta página mostra os dados do Contas em dia e atualiza sozinha quando algo muda lá.</p><button type="button" class="btn" id="b-sair">Sair desta conta</button>`:"";
 }
 </script>
 
