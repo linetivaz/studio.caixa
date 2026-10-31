@@ -244,8 +244,12 @@ header.top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; j
 .prox-row.retoque .nm::before { background: var(--capital) }
 .dots i.retoque { background: var(--capital) }
 .ag-card.retoque { border-left-color: var(--capital) }
-#tabAgendar { color: var(--accent) }
-#tabAgendar[aria-selected="true"] { color: var(--accent-fg) }
+#tabAgenda { color: var(--accent) }
+#tabAgenda[aria-selected="true"] { color: var(--accent-fg) }
+.ag-top { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 22px; align-items: start }
+@media (max-width: 900px) { .ag-top { grid-template-columns: minmax(0, 1fr) } }
+.wrap.entrada .monthnav { display: none }
+.cats button.perda { border-style: dashed }
 
 /* Gastos por categoria: barras horizontais, uma cor; contas fixas num tom mais apagado */
 .cat-bars { display: grid; gap: 8px }
@@ -339,9 +343,9 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
   <div id="notice" class="notice" hidden></div>
 
   <div class="tabs" role="tablist" aria-label="Seções">
-    <button role="tab" id="tabAgendar" aria-selected="false" aria-controls="viewAgendar">+ Agendar</button>
-    <button role="tab" id="tabAgenda" aria-selected="false" aria-controls="viewAgenda">Agendamentos<span class="count num" id="agCount"></span></button>
+    <button role="tab" id="tabAgenda" aria-selected="false" aria-controls="viewAgenda">Agenda +<span class="count num" id="agCount"></span></button>
     <button role="tab" id="tabRapido" aria-selected="false" aria-controls="viewRapido">Gasto rápido</button>
+    <button role="tab" id="tabEntrada" aria-selected="false" aria-controls="viewEntrada">Entrada rápida</button>
     <button role="tab" id="tabSaldos" aria-selected="false" aria-controls="viewSaldos">Saldos</button>
     <button role="tab" id="tabContas" aria-selected="false" aria-controls="viewContas">Contas</button>
   </div>
@@ -398,10 +402,35 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
       </section>
     </div>
   </div>
+  <div class="view" id="viewEntrada" role="tabpanel" aria-labelledby="tabEntrada" hidden>
+    <div class="rap">
+      <div class="rap-valor">
+        <span class="label" id="eTit">Quanto entrou?</span>
+        <span class="v num zero" id="eValor" aria-live="polite">R$ 0,00</span>
+      </div>
+      <div class="keypad" id="eKeypad">
+        <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+        <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+        <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+        <button type="button" data-k="00">00</button><button type="button" data-k="0">0</button><button type="button" data-k="del" aria-label="Apagar último número">⌫</button>
+      </div>
+      <div class="chips" id="eConta" role="group" aria-label="Conta que recebeu"><span class="label">Entrou na conta</span></div>
+      <input class="rap-desc" id="eDesc" placeholder="De quê? (opcional, ex.: tattoo João, saque, rendimento)" autocomplete="off" aria-label="Descrição da entrada">
+      <div class="chips" id="eDia" role="group" aria-label="Dia da entrada"><span class="label">Quando</span>
+        <button type="button" data-dia="hoje" aria-pressed="true">Hoje</button><button type="button" data-dia="ontem" aria-pressed="false">Ontem</button>
+        <button type="button" id="ePerda" aria-pressed="false" title="Registra um valor negativo, por exemplo perda na mesa">É perda</button></div>
+      <p class="rap-hint" id="eHint">Digite o valor e toque de onde veio para salvar.</p>
+      <div class="cats" id="eFontes"></div>
+      <section class="panel">
+        <div class="rap-hoje"><h2>Entradas de hoje</h2><span class="muted num" id="eTotais"></span></div>
+        <div class="lanc" id="eLista"></div>
+      </section>
+    </div>
+  </div>
   <div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo">Desfazer</button></div>
 
-  <div class="view" id="viewAgendar" role="tabpanel" aria-labelledby="tabAgendar" hidden>
-    <div class="agendar">
+  <div class="view" id="viewAgenda" role="tabpanel" aria-labelledby="tabAgenda" hidden>
+    <div class="ag-top">
     <section class="panel" id="agFormPanel">
       <div class="panel-head"><h2 id="agFormTitulo">Novo agendamento</h2></div>
       <form class="ag-form" id="agForm" autocomplete="off">
@@ -427,10 +456,6 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
         <div class="prox" id="agMarcados"></div>
       </section>
     </div>
-  </div>
-
-  <div class="view" id="viewAgenda" role="tabpanel" aria-labelledby="tabAgenda" hidden>
-    <button class="btn primary novo-ag" id="agNovo">+ Novo agendamento</button>
     <section class="tiles" id="agTiles"></section>
     <div class="ag-main">
       <section class="panel">
@@ -679,7 +704,7 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
     pendente = false;
     const ml = ymLabel(mes); $("mesLabel").textContent = ml[0].toUpperCase() + ml.slice(1);
     $("hoje").hidden = mes === hojeYm;
-    renderTiles(); renderGrupos(); renderLanc(); renderGanhos(); renderDebts(); renderChart(); renderAgenda(); renderRapido(); renderSaldos(); renderCategorias(); renderGG();
+    renderTiles(); renderGrupos(); renderLanc(); renderGanhos(); renderDebts(); renderChart(); renderAgenda(); renderRapido(); renderEntrada(); renderSaldos(); renderCategorias(); renderGG();
   }
 
   // Gastos do mês = contas fixas do mês + saídas lançadas; ganhos = entradas lançadas
@@ -978,8 +1003,9 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
   const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
   const isoDia = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   const hojeIso = isoDia(hoje);
-  let aba = "agendar";
-  try { aba = sessionStorage.getItem("aba") || "agendar"; } catch (e) { aba = "agendar"; }
+  let aba = "agenda";
+  try { aba = sessionStorage.getItem("aba") || "agenda"; } catch (e) { aba = "agenda"; }
+  if (aba === "agendar") aba = "agenda";
   let diaSel = hojeIso;
   let agEditando = null;
   let agArmed = null;
@@ -1016,8 +1042,8 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
     aba = t;
     try { sessionStorage.setItem("aba", t); } catch (e) {}
     $("tabContas").setAttribute("aria-selected", t === "contas");
-    $("tabAgendar").setAttribute("aria-selected", t === "agendar");
-    $("viewAgendar").hidden = t !== "agendar";
+    $("tabEntrada").setAttribute("aria-selected", t === "entrada");
+    $("viewEntrada").hidden = t !== "entrada";
     $("tabAgenda").setAttribute("aria-selected", t === "agenda");
     $("tabRapido").setAttribute("aria-selected", t === "rapido");
     $("viewContas").hidden = t !== "contas";
@@ -1026,11 +1052,11 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
     $("tabSaldos").setAttribute("aria-selected", t === "saldos");
     $("viewSaldos").hidden = t !== "saldos";
     $("app").classList.toggle("rapido", t === "rapido");
+    $("app").classList.toggle("entrada", t === "entrada");
   }
   $("tabContas").onclick = () => setAba("contas");
   $("tabAgenda").onclick = () => setAba("agenda");
-  $("tabAgendar").onclick = () => setAba("agendar");
-  $("agNovo").onclick = () => { limparAgForm(); setAba("agendar"); $("aNome").focus(); };
+  $("tabEntrada").onclick = () => setAba("entrada");
   $("aTipo").addEventListener("click", e => { const b = e.target.closest("[data-tipo]"); if (b) setATipo(b.dataset.tipo); });
   $("aData").addEventListener("change", renderMarcados);
   $("tabRapido").onclick = () => setAba("rapido");
@@ -1102,7 +1128,7 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
           <button class="btn" data-agact="edit">Editar</button>
           <button class="btn danger ${agArmed === a.id ? "armed" : ""}" data-agact="del">${agArmed === a.id ? "Confirmar" : "Excluir"}</button>
         </div></div>`;
-    }).join("") : `<p class="empty">Nenhum horário marcado neste dia. Toque em + Agendar para marcar.</p>`;
+    }).join("") : `<p class="empty">Nenhum horário marcado neste dia. Use o formulário acima para marcar.</p>`;
 
     // Próximos
     const px = futuros.slice(0, 6);
@@ -1176,7 +1202,7 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
       $("aValor").value = a.valor ? numStr(a.valor) : ""; $("aTempo").value = a.tempo ? String(a.tempo).replace(".", ",") : "";
       $("aData").value = a.data; $("aHora").value = a.hora || ""; setATipo(tipoAg(a));
       $("agFormTitulo").textContent = "Editar agendamento"; $("aSalvar").textContent = "Salvar"; $("aCancelar").hidden = false;
-      setAba("agendar"); renderMarcados(); $("aNome").focus();
+      setAba("agenda"); renderMarcados(); $("agFormPanel").scrollIntoView({ behavior: "smooth", block: "start" }); $("aNome").focus({ preventScroll: true });
     }
     if (act === "del") {
       if (agArmed !== a.id) { agArmed = a.id; renderAgenda(); return; }
@@ -1243,9 +1269,10 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
   }
   $("rKeypad").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) tecla(b.dataset.k); });
   document.addEventListener("keydown", e => {
-    if (aba !== "rapido" || e.target.matches("input, textarea, select") || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (/^[0-9]$/.test(e.key)) { tecla(e.key); e.preventDefault(); }
-    if (e.key === "Backspace") { tecla("del"); e.preventDefault(); }
+    if ((aba !== "rapido" && aba !== "entrada") || e.target.matches("input, textarea, select") || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = aba === "entrada" ? teclaE : tecla;
+    if (/^[0-9]$/.test(e.key)) { k(e.key); e.preventDefault(); }
+    if (e.key === "Backspace") { k("del"); e.preventDefault(); }
   });
   $("rForma").addEventListener("click", e => {
     const b = e.target.closest("[data-forma]"); if (!b) return;
@@ -1270,6 +1297,62 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
     const d = mesDoc(ym); d.lancamentos = d.lancamentos.filter(x => x.id !== id); state.meses[ym] = d; saveMes(ym);
   }
   $("rLista").addEventListener("click", e => { const b = e.target.closest("[data-rdel]"); if (b) apagarLanc(hojeYm, b.dataset.rdel); });
+
+  // Entrada rápida: mesmo teclado; tocar na fonte grava a entrada na conta escolhida
+  const RAP_FONTES = [["studio", "studio"], ["mesa", "mesa"], ["capital", "capital"], ["outros", "outros"]];
+  let eCent = 0, eDia = "hoje", ePerda = false, eConta = "studio";
+  try { const c = localStorage.getItem("familia-econta"); if (PAGADORES.some(x => x.id === c)) eConta = c; } catch (e) {}
+  $("eFontes").innerHTML = RAP_FONTES.map(([id, cor]) => `<button type="button" data-fonte="${id}" style="--cc:var(--${cor})">${FONTES.find(f => f.id === id).nome}</button>`).join("");
+  $("eConta").insertAdjacentHTML("beforeend", PAGADORES.map(c => `<button type="button" data-econta="${c.id}">${c.nome}</button>`).join(""));
+
+  function renderEntrada() {
+    const zero = eCent === 0;
+    $("eValor").textContent = (ePerda && !zero ? "− " : "") + fmt(eCent / 100);
+    $("eValor").classList.toggle("zero", zero);
+    $("eTit").textContent = ePerda ? "Quanto perdeu?" : "Quanto entrou?";
+    $("eFontes").querySelectorAll("button").forEach(b => { b.disabled = zero; b.classList.toggle("perda", ePerda); });
+    $("eHint").textContent = zero ? "Digite o valor e toque de onde veio para salvar." : "Agora toque de onde veio. A entrada é salva na hora.";
+    $("eConta").querySelectorAll("[data-econta]").forEach(b => b.setAttribute("aria-pressed", b.dataset.econta === eConta));
+    $("eDia").querySelectorAll("[data-dia]").forEach(b => b.setAttribute("aria-pressed", b.dataset.dia === eDia));
+    $("ePerda").setAttribute("aria-pressed", ePerda);
+    const entMes = (mesDoc(hojeYm).lancamentos || []).filter(l => l.tipo === "entrada");
+    const deHoje = entMes.filter(l => l.data === hojeIso).reverse();
+    $("eTotais").textContent = `Hoje ${fmt(deHoje.reduce((s, l) => s + l.valor, 0))} · no mês ${fmt(entMes.reduce((s, l) => s + l.valor, 0))}`;
+    $("eLista").innerHTML = !state.ready ? `<p class="empty">Carregando…</p>` : deHoje.length ? deHoje.map(l => `<div class="lanc-row">
+      <span class="d num">${l.data.slice(8, 10)}/${l.data.slice(5, 7)}</span>
+      <span>${esc(l.desc || l.cat)}<span class="c">${esc(l.cat)}${l.conta ? " · " + esc(nomeConta(l.conta)) : ""}</span></span>
+      <span class="val num ${l.valor < 0 ? "out" : "in"}">${l.valor < 0 ? "−" : "+"} ${fmt(Math.abs(l.valor))}</span>
+      <button class="icon" data-edel="${l.id}" aria-label="Apagar entrada">×</button></div>`).join("")
+      : `<p class="empty">Nenhuma entrada registrada hoje. A primeira aparece aqui assim que você tocar numa fonte.</p>`;
+  }
+  function teclaE(k) {
+    if (k === "del") eCent = Math.floor(eCent / 10);
+    else { const n = eCent * (k === "00" ? 100 : 10) + (k === "00" ? 0 : Number(k)); if (n <= 99999999) eCent = n; }
+    renderEntrada();
+  }
+  $("eKeypad").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) teclaE(b.dataset.k); });
+  $("eConta").addEventListener("click", e => {
+    const b = e.target.closest("[data-econta]"); if (!b) return;
+    eConta = b.dataset.econta; try { localStorage.setItem("familia-econta", eConta); } catch (er) {}
+    renderEntrada();
+  });
+  $("eDia").addEventListener("click", e => {
+    if (e.target.closest("#ePerda")) { ePerda = !ePerda; renderEntrada(); return; }
+    const b = e.target.closest("[data-dia]"); if (b) { eDia = b.dataset.dia; renderEntrada(); }
+  });
+  $("eFontes").addEventListener("click", e => {
+    const b = e.target.closest("[data-fonte]"); if (!b || !eCent) return;
+    const fonte = FONTES.find(f => f.id === b.dataset.fonte);
+    const data = eDia === "ontem" ? ontemIso() : hojeIso;
+    const ym = data.slice(0, 7);
+    const l = { id: "l" + Date.now().toString(36), tipo: "entrada", fonte: fonte.id, cat: fonte.nome, desc: $("eDesc").value.trim(), valor: (ePerda ? -1 : 1) * eCent / 100, data, conta: eConta };
+    const d = mesDoc(ym); d.lancamentos = [...d.lancamentos, l]; state.meses[ym] = d;
+    ultimo = { ym, id: l.id }; ultimoAg = null;
+    eCent = 0; eDia = "hoje"; ePerda = false; $("eDesc").value = ""; $("eDesc").blur();
+    saveMes(ym);
+    mostrarToast(`${l.desc || fonte.nome} · ${l.valor < 0 ? "−" : "+"}${fmt(Math.abs(l.valor))} salvo` + (state.saldos.contas?.[l.conta] ? ` · saldo ${nomeConta(l.conta)} ${fmt(calcSaldos()[l.conta].saldo)}` : ""));
+  });
+  $("eLista").addEventListener("click", e => { const b = e.target.closest("[data-edel]"); if (b) apagarLanc(hojeYm, b.dataset.edel); });
   function mostrarToast(t) {
     $("toastMsg").textContent = t; $("toast").hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { $("toast").hidden = true; ultimo = null; ultimoAg = null; }, 6000);
@@ -1434,9 +1517,10 @@ dialog .row2 { display: flex; gap: 8px; flex-wrap: wrap }
 
   // Link com #gasto abre direto no registro rápido (atalho na tela inicial do celular)
   // #agendar abre direto a aba de novo agendamento
-  if (location.hash === "#gasto") aba = "rapido";
-  if (location.hash === "#agendar") aba = "agendar";
-  window.addEventListener("hashchange", () => { if (location.hash === "#gasto") setAba("rapido"); if (location.hash === "#agendar") setAba("agendar"); });
+  // #entrada abre a entrada rápida
+  const HASH = { "#gasto": "rapido", "#agendar": "agenda", "#agenda": "agenda", "#entrada": "entrada", "#saldos": "saldos", "#contas": "contas" };
+  if (HASH[location.hash]) aba = HASH[location.hash];
+  window.addEventListener("hashchange", () => { if (HASH[location.hash]) setAba(HASH[location.hash]); });
   setAba(aba);
 
   setTipo("saida"); resetData(); render();
